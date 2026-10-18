@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>项目进度</title>
+<meta name="theme-color" content="#3559d8">
+<style>
+/* ============================================================
+   项目进度页 · 通用模板（单文件 / 零外部请求 / file:// 双击可用）
+
+   使用步骤
+   1) 复制本文件到 docs/项目进度.html —— 文件名固定（不带日期）；「建档日」写进页内（如 project.tagline），填一次
+   2) 全文替换 {{...}} 占位符；替换完搜索 "{{" 应为 0（说明文字自身除外）
+   3) 平时只改底部 DATA 区，不手改渲染代码；改完同步更新 DATA.updated
+   4) 空数据（缺键或空数组）→ 对应区块整节隐藏，不留空卡片
+
+   硬约束（不要为了「好看」破例）
+   - 零外部请求：不引 CDN / 在线字体 / 图标库 / 图表库
+   - 单文件：CSS 与 JS 都内联，双击即开
+   - 数据区与渲染区分离：改数据即全页重排
+   - 本页是「给人看的投影」，权威源是 AGENTS / MEMORY / ROADMAP 等 MD
+   ============================================================ */
+:root{
+  color-scheme:light;
+  --brand:#3559d8; --brand-light:#edf0fb;
+  --green:#0b7a1c; --green-light:#e8ffea;
+  --gray-dot:#c9cdd4;
+  --bg:#f7f8fa; --surface:#fff; --text:#1d2129; --text-2:#4e5969; --text-3:#6b7280;
+  --border:#e5e6eb; --border-light:#f0f1f3;
+  --shadow:0 1px 2px rgba(29,33,41,.05);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    color-scheme:dark;
+    --brand:#7b93ea; --brand-light:rgba(123,147,234,.15);
+    --green:#4ade80; --green-light:rgba(74,222,128,.13);
+    --gray-dot:#4a5261;
+    --bg:#0e1014; --surface:#171b24; --text:#e6e8ec; --text-2:#aab3bf; --text-3:#8a94a3;
+    --border:#38404f; --border-light:#2a313c;
+    --shadow:0 1px 2px rgba(0,0,0,.45);
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-size:15px;line-height:1.7;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+h1,h2,h3,p{margin:0}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+.wrap{max-width:1080px;margin:0 auto;padding:34px 22px 70px}
+.masthead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:18px}
+.kicker{font-size:11.5px;font-weight:600;letter-spacing:.14em;color:var(--brand);margin-bottom:5px}
+.masthead h1{font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1.15}
+.tagline{font-size:13.5px;color:var(--text-2);margin-top:6px;line-height:1.6}
+.updbox{text-align:right;font-size:11.5px;color:var(--text-3);line-height:1.5;white-space:nowrap}
+.updbox b{display:block;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text-2);margin-top:2px}
+
+/* 卡片与分节标题 */
+.card{background:var(--surface);border:1px solid var(--border-light);border-radius:14px;
+  padding:20px 22px;box-shadow:var(--shadow);margin-bottom:18px}
+.sec{font-size:12px;font-weight:700;color:var(--text-3);letter-spacing:.08em;margin-bottom:14px}
+.sec .hint{font-weight:400;letter-spacing:0;font-size:12.5px;margin-left:8px}
+
+/* ① 状态：一句话现状（含阶段名）＋ 3 个关键数字 */
+.status{border-color:var(--brand);background:var(--brand-light)}
+.status .now{font-size:17.5px;font-weight:600;letter-spacing:-.01em;line-height:1.65}
+.status .now .stg{color:var(--brand);font-weight:700}
+.status .stats{margin:15px 0 0}
+
+/* ② 阶段路线：节点之间用连接线串起来，桌面横线 / 窄屏竖线 */
+.steps{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:0;padding-bottom:4px}
+.step{flex:1 1 0;min-width:150px;position:relative;padding:0 16px 0 0}
+.step:not(:last-child):after{content:"";position:absolute;left:7px;right:-9px;top:6px;height:2px;
+  background:var(--border);z-index:0}
+.step.done:not(:last-child):after{background:var(--green)}
+.step .dot{position:relative;z-index:1;width:13px;height:13px;border-radius:50%;background:var(--gray-dot);display:block;margin-bottom:9px}
+.step.done .dot{background:var(--green)}
+.step.doing .dot{background:var(--brand);box-shadow:0 0 0 4px var(--brand-light)}
+.step .n{font-size:11.5px;color:var(--text-3);font-family:var(--mono)}
+.step .st{display:inline-block;font-size:11px;font-weight:600;line-height:1.6;padding:0 6px;
+  border-radius:4px;margin-left:6px;vertical-align:1px;font-family:inherit}
+.step.done .st{background:var(--green-light);color:var(--green)}
+.step.doing .st{background:var(--brand-light);color:var(--brand)}
+.step.todo .st{background:var(--bg);color:var(--text-3);border:1px solid var(--border-light)}
+.step .nm{font-size:14.5px;font-weight:650}
+.step.doing .nm{color:var(--brand)}
+.step.done .nm{color:var(--text-2)}
+.step.todo .nm{color:var(--text-3);font-weight:500}
+.step .ds{font-size:12.5px;color:var(--text-2);line-height:1.6;margin-top:2px}
+.step .wh{font-size:11.5px;color:var(--text-3);font-family:var(--mono);margin-top:5px}
+
+/* ③ 工作项 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:12px}
+.cell{border:1px solid var(--border-light);border-radius:11px;padding:12px 13px;background:var(--bg);position:relative}
+.cell.done{border-color:var(--green);background:var(--green-light)}
+.cell.doing{border-color:var(--brand);background:var(--brand-light)}
+.cell .cn{font-size:11.5px;color:var(--text-3);font-family:var(--mono)}
+.cell .cname{font-size:14.5px;font-weight:650;margin:1px 0 4px}
+.cell.todo .cname{font-weight:500;color:var(--text-2)}
+.cell .cnote{font-size:12.5px;color:var(--text-3);line-height:1.55}
+.cell .cflags{margin-top:7px;display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:11.5px;padding:1px 7px;border-radius:4px;background:var(--surface);color:var(--text-2);border:1px solid var(--border-light)}
+.tag.ok{background:var(--green);color:#fff;border-color:var(--green)}
+@media (prefers-color-scheme:dark){ .tag.ok{color:#0e1014} }
+
+/* ④ 提示词：当前待用（固定高度窗口）→ 任务链 → 已用过 */
+.pcard{border:1px solid var(--brand);background:var(--brand-light);border-radius:12px;overflow:hidden;min-width:0}
+.pcard+.pcard{margin-top:12px}
+.phead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:13px 15px 10px}
+.ph-l{min-width:0}
+.pcard .pt{font-size:14.5px;font-weight:650;color:var(--brand);line-height:1.45}
+.pcard .pf{font-size:12.5px;color:var(--text-2);margin-top:3px;line-height:1.55}
+.pcard pre{margin:0 14px;height:260px;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;
+  font-family:var(--mono);font-size:12.5px;
+  line-height:1.7;color:var(--text);background:var(--surface);border:1px solid var(--border-light);
+  border-radius:8px;padding:12px 14px;overflow:auto}
+.pfoot{font-size:12px;color:var(--text-2);padding:7px 15px 11px;font-family:var(--mono)}
+.copybtn{flex:none;margin:0;font:inherit;font-size:12.5px;color:#fff;background:var(--brand);
+  border:1px solid var(--brand);border-radius:8px;padding:5px 14px;cursor:pointer;white-space:nowrap}
+.copybtn:hover{opacity:.92}
+.copybtn.ok{background:var(--green);border-color:var(--green)}
+@media (prefers-color-scheme:dark){ .copybtn{color:#0e1014} }
+/* 任务链：未完成（主控侧 / 执行侧）→ 已完成 */
+#prompts{min-width:0}
+.chain{display:grid;gap:12px;min-width:0}
+.chain-block{border:1px solid var(--border-light);border-radius:12px;background:var(--surface);padding:14px 15px;min-width:0}
+.chain-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.chain-head>div{min-width:0}
+.chain-head b{font-size:13.5px}
+.ch-sub{font-size:12px;color:var(--text-3);margin-left:6px;font-weight:400}
+.ch-r{font-size:12px;color:var(--text-3)}
+.side{border-left:3px solid var(--border);padding-left:14px;margin-top:14px;min-width:0}
+.side-main{border-left-color:var(--green)}
+.side-exec{border-left-color:var(--brand)}
+.side-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px;flex-wrap:wrap;min-width:0}
+.side-title{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:650;color:var(--text);min-width:0}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--border);flex:none}
+.side-main .sdot{background:var(--green)}
+.side-exec .sdot{background:var(--brand)}
+.side-count{font-size:12px;color:var(--text-3);font-weight:400}
+.lv-legend{font-size:11.5px;color:var(--text-3);white-space:nowrap}
+.node{border:1px solid var(--border-light);border-radius:10px;background:var(--bg);padding:11px 13px;min-width:0}
+.node+.node{margin-top:8px}
+.node-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.node-top b{font-size:13.5px;font-weight:650;color:var(--text)}
+.node-state{font-size:11.5px;color:var(--text-2);margin-left:auto;white-space:nowrap}
+.node-note{font-size:12.5px;color:var(--text-2);line-height:1.65;margin-top:4px}
+.node-meta{font-size:12px;color:var(--text-2);line-height:1.6;margin-top:4px}
+.node .pcard{margin-top:10px}
+.chain-block.done{padding:0;background:var(--bg)}
+.chain-block.done>summary{cursor:pointer;list-style:none;padding:13px 15px;font-size:13px;font-weight:650;color:var(--text-2)}
+.chain-block.done>summary::-webkit-details-marker{display:none}
+.chain-block.done>summary:before{content:"▸ ";color:var(--text-3)}
+.chain-block.done[open]>summary:before{content:"▾ "}
+.done-list{margin:0;padding:0 15px 13px;list-style:none}
+.done-list li{font-size:12.5px;color:var(--text-3);line-height:1.65;padding:7px 0;border-top:1px solid var(--border-light)}
+.done-list li:first-child{border-top:0;padding-top:0}
+.done-list b{color:var(--text-2);font-weight:600}
+
+/* 难度徽标：任务 → 模型分配参考（★☆☆ 低 / ★★☆ 中 / ★★★ 高） */
+:root{ --lv-high:#a33a0d; --lv-high-bg:rgba(163,58,13,.12) }
+@media (prefers-color-scheme:dark){ :root{ --lv-high:#ffa94d; --lv-high-bg:rgba(255,169,77,.15) } }
+.lv{display:inline-block;font-size:11.5px;font-weight:650;line-height:1.5;padding:1px 9px;border-radius:99px;margin-right:7px;vertical-align:1px}
+.lv.low{background:rgba(134,144,156,.10);color:var(--text-3)}
+.lv.mid{background:rgba(78,89,105,.20);color:var(--text-2)}
+.lv.high{background:var(--lv-high-bg);color:var(--lv-high)}
+.pcard .pmeta{padding:0 15px 9px;font-size:12.5px;color:var(--text-2)}
+
+/* ⑤ 时间线 */
+.tl{border-left:2px solid var(--border);margin-left:5px;padding-left:18px}
+.tl-item{position:relative;padding-bottom:18px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item:before{content:"";position:absolute;left:-25px;top:7px;width:9px;height:9px;border-radius:50%;
+  background:var(--brand);box-shadow:0 0 0 3px var(--surface)}
+.tl-t{font-size:11.5px;color:var(--text-3);font-family:var(--mono)}
+.tl-h{font-size:14.5px;font-weight:650}
+.tl-d{font-size:13px;color:var(--text-2);line-height:1.65}
+.tl-e{font-size:12px;color:var(--text-3);font-family:var(--mono);margin-top:3px}
+
+/* ⑥ 需要你做的 */
+.action{border-left:3px solid var(--brand)}
+.action .sec{color:var(--brand)}
+.acts{display:grid;gap:8px}
+.act{display:flex;gap:10px;align-items:flex-start;background:var(--bg);border:1px solid var(--border-light);
+  border-radius:10px;padding:11px 13px}
+.act-n{flex:none;width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font-size:11px;
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);line-height:1}
+@media (prefers-color-scheme:dark){ .act-n{color:#0e1014} }
+.act-b{font-size:13.5px;line-height:1.65;color:var(--text-2);min-width:0}
+.own{font-size:11.5px;padding:0 6px;border-radius:4px;background:var(--surface);border:1px solid var(--border-light);
+  color:var(--text-3);margin-right:5px;white-space:nowrap}
+.own.you{background:var(--brand-light);border-color:var(--brand);color:var(--brand)}
+.own.main{background:var(--green-light);border-color:var(--green);color:var(--green)}
+.own.exec{background:var(--surface);border-color:var(--border);color:var(--text-2)}
+.sec-note{font-size:12.5px;color:var(--text-3);line-height:1.65;margin:-6px 0 10px}
+.rk-kind{font-size:11px;color:var(--text-3);border:1px dashed var(--border);border-radius:4px;padding:0 5px;
+  flex:none;white-space:nowrap}
+
+/* 工作项按组折叠（只折会持续变长的块） */
+.tgroup{border:1px solid var(--border-light);border-radius:11px;background:var(--bg);margin-bottom:10px}
+.tgroup:last-child{margin-bottom:0}
+.tgroup>summary{display:flex;align-items:baseline;gap:8px;padding:11px 15px;cursor:pointer;
+  font-size:13.5px;font-weight:650;color:var(--text-2);list-style:none}
+.tgroup>summary::-webkit-details-marker{display:none}
+.tgroup>summary:before{content:"";flex:none;width:6px;height:6px;margin-right:2px;
+  border-right:1.6px solid var(--text-3);border-bottom:1.6px solid var(--text-3);
+  transform:rotate(-45deg) translate(1px,-1px)}
+.tgroup[open]>summary:before{transform:rotate(45deg)}
+.tgroup>summary:hover{color:var(--brand)}
+.tgroup>summary i{font-style:normal;font-size:11.5px;font-family:var(--mono);color:var(--text-3);font-weight:400}
+.tgroup>summary .tnote{margin-left:auto;font-size:12px;color:var(--text-3);font-weight:400}
+.tgroup .grid{padding:0 15px 15px}
+.pending{font-size:12.5px;color:var(--text-3);line-height:1.65;margin-top:10px;padding-left:2px}
+
+/* 时间线折叠（默认只显示最近若干轮，旧的不删、点开即看） */
+.tl-more{font:inherit;font-size:12.5px;color:var(--brand);background:var(--brand-light);
+  border:1px solid var(--brand);border-radius:8px;padding:5px 12px;cursor:pointer;margin-bottom:14px}
+.tl-more:hover{border-color:var(--text-2);color:var(--text-2);background:var(--surface)}
+
+/* 「已经定下来」折叠（低频查阅，默认收起） */
+.fold{margin-top:12px;border:1px solid var(--border-light);border-radius:11px;background:var(--bg)}
+.fold summary{cursor:pointer;padding:11px 15px;font-size:13px;font-weight:650;color:var(--text-2)}
+.fold summary::marker{color:var(--text-3)}
+.fold .fold-body{padding:0 15px 14px}
+.fold .fold-body ul{margin:0;padding-left:18px}
+
+/* ⑦ 文件清单 */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border-light)}
+th{font-size:11.5px;color:var(--text-3);font-weight:600;letter-spacing:.04em}
+td:first-child{font-family:var(--mono);font-size:12.5px}
+tr:last-child td{border-bottom:0}
+.pill{font-size:11.5px;padding:1px 7px;border-radius:99px;background:var(--bg);border:1px solid var(--border-light);color:var(--text-2)}
+.pill.do{background:var(--green-light);border-color:var(--green);color:var(--green)}
+.pill.ro{background:var(--brand-light);border-color:var(--brand);color:var(--brand)}
+@media (prefers-color-scheme:dark){ .pill.do{color:var(--green)} .pill.ro{color:var(--brand)} }
+
+/* 看板化：关键数字 + 页内导航 + 分节可折叠
+   设计口径：一屏之内要能回答「现在在哪、还剩什么」；细节收进可折叠分节，
+   但每个折叠行都带一行摘要数字——收起来也不丢信息。 */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin:0 0 16px}
+.stat{background:var(--surface);border:1px solid var(--border-light);border-radius:12px;padding:12px 15px;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.25;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--text-3);display:block;margin-top:2px}
+.stat.on b{color:var(--brand)}
+.stat.ok b{color:var(--green)}
+
+.anchors{position:sticky;top:0;z-index:5;display:flex;gap:6px;flex-wrap:wrap;margin:0 0 18px;padding:9px 0;background:var(--bg)}
+.anchors a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:12.5px;color:var(--text-2);
+  background:var(--surface);border:1px solid var(--border-light);border-radius:8px;padding:5px 10px;cursor:pointer;line-height:1.4}
+.anchors a i{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--text-3)}
+.anchors a:hover{border-color:var(--brand);color:var(--brand)}
+.anchors a:hover i{color:var(--brand)}
+#status,section.card,details.card{scroll-margin-top:68px}
+
+details.card{padding:0;overflow:hidden}
+details.card>summary{display:flex;align-items:baseline;gap:10px;padding:15px 22px;cursor:pointer;list-style:none}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary:before{content:"";flex:none;width:6px;height:6px;margin-right:2px;
+  border-right:1.6px solid var(--text-3);border-bottom:1.6px solid var(--text-3);
+  transform:rotate(-45deg) translate(1px,-1px)}
+details.card[open]>summary:before{transform:rotate(45deg)}
+details.card>summary:hover{background:var(--bg)}
+details.card>summary .sec{margin:0}
+details.card>summary .hint{margin-left:auto;text-align:right}
+details.card[open]>summary{border-bottom:1px solid var(--border-light)}
+.cbody{padding:16px 22px 20px}
+
+/* ⑧ 卡点 */
+.risk{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--text-2);line-height:1.65;padding:7px 0;
+  border-bottom:1px solid var(--border-light)}
+.risk:last-child{border-bottom:0}
+
+/* 空数据不渲染：整节隐藏，不留空卡片 */
+[hidden]{display:none!important}
+.foot-upd{margin-top:8px;font-family:var(--mono);font-size:12px;color:var(--text-3)}
+
+/* 窄屏：正文不横向溢出；提示词与锚点导航各自内部横滚 */
+@media (max-width:640px){
+  .steps{display:block;overflow:visible;padding-bottom:0}
+  .step{min-width:0;padding:0 0 18px 24px}
+  .step:not(:last-child):after{left:6px;right:auto;top:14px;bottom:-14px;width:2px;height:auto}
+  .step .dot{position:absolute;left:0;top:1px;margin:0}
+}
+@media (max-width:480px){
+  .wrap{padding:24px 14px 56px}
+  .masthead{display:block}
+  .masthead h1{font-size:26px}
+  .updbox{text-align:left;margin-top:10px}
+  .status .now{font-size:16px}
+  .anchors{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;padding:8px 0}
+  .anchors a{flex:none}
+  .phead{flex-direction:column;gap:8px}
+  .copybtn{align-self:flex-start}
+  .tl-e{word-break:break-all}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
+  .stat{padding:10px 12px}
+  .stat b{font-size:19px}
+  .stat span{font-size:11.5px}
+  .grid{grid-template-columns:1fr}
+}
+
+footer{font-size:12.5px;color:var(--text-3);margin-top:26px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <div class="kicker" id="kick">项目进度</div>
+      <h1 id="pname">项目进度</h1>
+      <p class="tagline" id="ptag"></p>
+    </div>
+    <div class="updbox"><span>数据截止</span><b id="upd"></b></div>
+  </header>
+  <nav class="anchors" id="anchors" aria-label="页内导航"></nav>
+
+  <div id="status"></div>
+
+  <section class="card action" id="sec-decide"><div class="sec">需要你做的<span class="hint" id="sumDecide"></span></div><div id="decide"></div></section>
+  <section class="card" id="sec-stages"><div class="sec">阶段路线<span class="hint" id="sumStages"></span></div><div class="steps" id="stages"></div></section>
+  <section class="card" id="sec-prompts"><div class="sec">任务链与提示词<span class="hint" id="sumPrompts"></span></div><div id="prompts"></div></section>
+  <section class="card" id="sec-batch"><div class="sec">工作项<span class="hint" id="sumBatch"></span></div><div id="batch"></div></section>
+  <section class="card" id="sec-topics"><div class="sec">专项覆盖<span class="hint" id="sumTopics"></span></div><div class="grid" id="topics"></div></section>
+  <details class="card" id="sec-timeline"><summary><span class="sec">做过什么</span><span class="hint" id="sumTL"></span></summary><div class="cbody"><div id="tlTop"></div><div class="tl" id="timeline"></div><div id="decisions"></div></div></details>
+  <section class="card" id="sec-risks"><div class="sec">风险与未决<span class="hint" id="sumRisks"></span></div><p class="sec-note">以下不是待办清单；只有标「你」的才需要使用者拍板，其余由项目侧跟进。</p><div id="risks"></div></section>
+  <details class="card" id="sec-files"><summary><span class="sec">文件清单（附录）</span><span class="hint" id="sumFiles"></span></summary><div class="cbody" style="overflow-x:auto"><table id="files"></table></div></details>
+
+  <footer>
+    <div class="foot-upd" id="updFoot"></div>
+    <b>本页是给人看的</b>（双击即开，不需要装任何东西）。给 Agent 看的文字版另有：<code>AGENTS.md</code> 管规矩、<code>MEMORY.md</code> 管进度、<code>ROADMAP.md</code> 管计划。<br>
+    维护方式：所有内容来自下方数据区，<b>改数据即全页重排，不手改 HTML</b>；本页由<b>项目维护方</b>维护（采用多对话协作时＝主控对话），与进度文档保持同步。<br>
+    内容变多时的整理办法见数据区顶部注释：<b>分层 + 折叠，不靠删减</b>（旧条目只收起、不删除）。
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   数据区：每完成一个批次（一次收尾）就改这里，下面的渲染代码不用动
+   （本页由【主控对话】维护；更新后同步 MEMORY.md）
+
+   —— 四个问题在本页的落点 ——
+   (a) 流程到哪了            → stage ＋ stages
+   (b) 哪些提示词已用过       → prompts.used
+   (c) 当前待用哪些          → prompts.current（挂在对应执行节点里，多条并列、每条独立复制）
+   (d) 下一个节点干什么       → prompts.queue（执行侧）＋ next.ready（主控侧）＋ next.decide（你要做的）
+
+   —— 字段速查（缺键或空数组 → 对应区块整节隐藏，不留空卡片）——
+   project      页头身份：{ kicker 眉标, name 项目名, tagline 一句话定义 }
+   updated      页面数据截止时间（更新本页任何内容时同步改这里；页头、页脚各显示一处）
+   stage        { name 阶段名, line 一句话现状 }（无此键或两者皆空 → 状态区不渲染）
+   topics       专项覆盖：[{ n 名称, state done|doing|todo, cntText 角标, note 说明 }]
+   stages       阶段路线：[{ n 编号, name 名称, state, when 时间, desc 说明 }]
+   batchGroups  工作项分组映射：[{ cat 对应 batch 的 cat, n 组名, note 组备注 }]
+                —— 只做映射：分组成员与顺序由 batch[].cat 自动决定，没有成员的组不显示
+   batch        工作项：[{ n 序号, name 名称, cat 归组, state, note 说明 }]
+   timelineRecent 「做过什么」默认显示的最近条数（缺省＝5）
+   prompts      { current:[{ node 对应 queue.id, name, to 给谁/怎么用, level 难度, levelNote 说明, text 全文 }],
+                  queue:[{ id, name, note, owner 执行|主控|你, state 待分发|待产出, level, advice 建议 }],
+                  used:[{ name, when, note }] }
+   timeline     [{ t 时间, h 标题, d 描述, e 产出文件 }]
+   next         { decide → 「需要你做的」；ready → 任务链「主控侧」；decided → 「做过什么」折叠；
+                  每组条目 decide/decided [{ own 归属, text 内容 }]；ready [{ id, own, name, text, state }] }
+                —— 提示词挂载：prompts.current[].node 对应两侧节点的 id；
+                   执行侧默认挂提示词；主控侧平时为空，只有换届（新主控接手）时才挂一条。
+   files        [{ p 路径, tag 一句话说明, k 类型 ro=只读文档 / do=生成产物 }]
+                —— 不记大小与改动时间（手写必然失真；需要时以 git 为准）
+   risks        风险与未决：[{ text 内容, owner 你|主控|执行|外部, kind 待拍板|信息缺口|技术备注 }]
+                —— 不是待办；只有 owner=你 的才需要使用者拍板；兼容纯字符串条目
+
+   state 取值：done（已完成）/ doing（进行中）/ todo（未开始）
+   level 难度取值：low / mid / high —— 供按「token 消耗 × 交付质量」分配模型；'' ＝ 不适用
+
+   —— 页面「整理」规则（随内容变多照此做）——
+   ① 折谁不折谁看两条：条目多 + 还会持续变长。
+      可折：batch 按 cat 分组、timeline 默认只显示最近 timelineRecent 条、files 整节。
+      一律展开：stages、topics、prompts.queue、risks；prompts.current 用固定高度滚动窗口（始终展示，不折叠）。
+      别为「整齐」到处加折，那是负担不是整理。
+   ② 折叠 ≠ 删除：旧条目一条都不少，只是默认收起。真正的删减要先问使用者。
+   ③ 同一天的同类改动合并成一条；已定的决策进 next.decided。
+   ④ 旧条目太多时：先把结论蒸馏进结论文档，再问使用者删不删 DATA 里的旧条目——不自行删。
+   ============================================================ */
+var DATA = {
+  updated: '{{YYYY-MM-DD HH:MM}}',
+
+  /* ── 页头身份：换项目只改这里 ── */
+  project: {
+    kicker: '项目进度',
+    name: '{{项目名}}',
+    tagline: '{{一句话定义：是什么 · 给谁用 · 当前形态}}'
+  },
+
+  /* ── 当前状态：一句话现状（阶段名 ＋ 进展）；3 个关键数字自动算出 ── */
+  stage: {
+    name: '{{阶段名，如：阶段 1 · 准备}}',
+    line: '{{一句话说明现在到哪了、卡在哪}}'
+  },
+
+  /* ── 专项覆盖（可选）：按专项列覆盖情况；不需要就整段删掉 ── */
+  topics: [
+    {n:'{{专项 1}}', state:'doing', cntText:'{{角标，如：已完成 3/5}}', note:'{{说明}}'}
+  ],
+
+  /* ── 阶段路线（建议 2–12 段；只能有一个 doing；done 在前；名称唯一）── */
+  stages: [
+    {n:'阶段 0', name:'{{准备}}',   state:'done',  when:'{{MM-DD}}', desc:'{{这一段做完了什么}}'},
+    {n:'阶段 1', name:'{{进行中}}', state:'doing', when:'{{MM-DD}}', desc:'{{这一段在做什么}}'},
+    {n:'阶段 2', name:'{{待开始}}', state:'todo',  when:'—',         desc:'{{这一段准备做什么}}'}
+  ],
+
+  /* ── 工作项分组：只做 cat → 组名/备注 的映射 ──
+     成员与顺序由 batch[].cat 自动决定；没有成员的组不显示。 */
+  batchGroups: [
+    {cat:'{{分组键}}', n:'{{分组显示名}}', note:'{{组备注}}'}
+  ],
+
+  /* 「做过什么」默认只显示最近几条，其余折叠 */
+  timelineRecent: 3,
+
+  /* ── 工作项：n 序号、cat 归组 ── */
+  batch: [
+    {n:1, name:'{{工作项 1}}', cat:'{{分组键}}', state:'done', note:'{{结论 / 日期}}'},
+    {n:2, name:'{{工作项 2}}', cat:'{{分组键}}', state:'todo', note:'{{状态 / 下一步}}'}
+  ],
+
+  /* ── 提示词 ──
+     current：挂在 queue[].id 对应的节点上，多条并列、每条独立复制；固定高度滚动窗口，始终展示。
+     queue  ：任务链；owner 取 执行 / 主控 / 你（单对话项目可全填「执行」）。
+     used   ：已用过，归档。 */
+  prompts: {
+    current: [
+      {
+        node: '{{执行节点 id}}',
+        name: '{{提示词名称}}',
+        to: '{{给谁用、怎么用}}',
+        level: 'mid',
+        levelNote: '{{难度说明与模型建议}}',
+        text: `{{在这里粘贴提示词全文；页面用固定高度窗口展示，可滚动、可一键复制}}`
+      }
+    ],
+    queue: [
+      {id:'{{执行节点 id}}', name:'{{任务名}}', note:'{{状态说明}}', owner:'执行', state:'待分发', level:'mid', advice:'{{模型建议}}'}
+    ],
+    used: [
+      {name:'{{已用过的提示词}}', when:'{{YYYY-MM-DD}}', note:'{{结果}}'}
+    ]
+  },
+
+  /* ── 做过什么：t 时间、h 标题、d 描述、e 产出文件 ── */
+  timeline: [
+    {t:'{{MM-DD}}', h:'{{标题}}', d:'{{做了什么、结论是什么}}', e:'{{产出文件}}'}
+  ],
+
+  /* ── 接下来做什么 ──
+     decide：需要使用者做的（操作 / 拍板），必须显式呈现；
+     ready ：主控侧可直接做的下一步；
+     decided：已定决策（折叠在「做过什么」里）。 */
+  next: {
+    decide: [
+      {own:'你', text:'{{需要使用者操作或拍板的一件事}}'}
+    ],
+    ready: [
+      {id:'{{主控节点 id}}', own:'主控', name:'{{任务名}}', text:'{{下一步做什么}}', state:'{{状态}}'}
+    ],
+    decided: [
+      {own:'已定', text:'{{已确认的决策（日期）}}'}
+    ]
+  },
+
+  /* ── 文件清单：不记大小与改动时间（手写必然失真；需要时以 git 为准）── */
+  files: [
+    {p:'AGENTS.md', tag:'项目规则总纲', k:'ro'},
+    {p:'docs/项目进度.html', tag:'本页', k:'ro'}
+  ],
+
+  /* ── 风险与未决：不是待办；只有 owner='你' 的需要使用者拍板 ── */
+  risks: [
+    {text:'{{风险 / 未决事项}}', owner:'主控', kind:'信息缺口'}
+  ]
+};
+
+/* ---------- 渲染（改数据无需动这里） ---------- */
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+/* 有没有数据：缺键 / 空数组 一律视为没有（对应区块整节不渲染） */
+function arr(v){ return Array.isArray(v) && v.length > 0; }
+function showEl(id, on){ var el = document.getElementById(id); if (el) el.hidden = !on; }
+function countBy(list, st){
+  var n = 0;
+  if (!arr(list)) return n;
+  for (var i = 0; i < list.length; i++){ if (list[i].state === st) n++; }
+  return n;
+}
+/* 归属标签配色：你 / 主控 / 执行 */
+function ownClass(owner){
+  return owner === '你' ? 'you' : owner === '主控' ? 'main' : owner === '执行' ? 'exec' : '';
+}
+/* 状态归一：白名单外的值一律按 todo 处理（防 class 注入 / 拼写错误） */
+function stateClass(v){ return v === 'done' || v === 'doing' ? v : 'todo'; }
+function stateLabel(v){ return v === 'done' ? '已完成' : v === 'doing' ? '进行中' : '未开始'; }
+
+/* 复制按钮：file:// 下 navigator.clipboard 常不可用，
+   所以在点击手势内先走同步的 execCommand，失败再退回 clipboard API。 */
+function copyText(id, btn){
+  var el = document.getElementById(id);
+  if (!el) return;
+  var text = el.textContent;
+  var orig = btn.getAttribute('data-label') || '复制全文';
+  btn.setAttribute('data-label', orig);
+  function ok(){ btn.textContent = '已复制 ✓'; btn.classList.add('ok');
+    setTimeout(function(){ btn.textContent = orig; btn.classList.remove('ok'); }, 1600); }
+  function fail(){ alert('自动复制失败：请手动选中提示词全文复制。'); }
+  function legacy(){
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly','');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '-9999px'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { ta.setSelectionRange(0, ta.value.length); } catch(e){}
+    var done = false;
+    try { done = document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(ta);
+    return done;
+  }
+  if (legacy()){ ok(); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(ok, fail);
+  } else { fail(); }
+}
+
+/* 页头身份：项目名 / 页面类型 / 一句话定义（换项目只改 DATA.project） */
+function renderMasthead(){
+  var p = DATA.project || {};
+  document.getElementById('kick').textContent = p.kicker || '项目进度';
+  document.getElementById('pname').textContent = p.name || '项目进度';
+  var tag = document.getElementById('ptag');
+  tag.textContent = p.tagline || '';
+  tag.hidden = !p.tagline;
+  document.title = (p.kicker ? p.kicker + ' · ' : '') + (p.name || '项目进度');
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta){
+    var brand = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+    meta.setAttribute('content', brand || '#3559d8');
+  }
+}
+
+/* 需要你做的：从 next.decide 拆出来，放在状态下面第一屏 */
+function renderDecide(){
+  var N = DATA.next || {};
+  var list = arr(N.decide) ? N.decide : [];
+  showEl('sec-decide', list.length > 0);
+  if (!list.length) return;
+  var h = '<div class="acts">';
+  for (var i = 0; i < list.length; i++){
+    var d = list[i];
+    h += '<div class="act"><span class="act-n">' + (i + 1) + '</span><div class="act-b">'
+      + (d.own ? '<span class="own ' + ownClass(d.own) + '">' + esc(d.own) + '</span>' : '')
+      + esc(d.text) + '</div></div>';
+  }
+  h += '</div>';
+  document.getElementById('decide').innerHTML = h;
+  document.getElementById('sumDecide').textContent = list.length + ' 件 · 按顺序处理即可';
+}
+
+/* 当前状态：一句话现状（阶段名 ＋ 进展）＋ 3 个关键数字（均由数据算出） */
+function renderStatus(){
+  var st = DATA.stage || {};
+  var tiles = [];
+  if (DATA.next && arr(DATA.next.decide)){
+    tiles.push({ n: DATA.next.decide.length, t: '件需要你做的', k: 'on' });
+  }
+  if (arr(DATA.batch)){
+    tiles.push({ n: countBy(DATA.batch, 'done') + ' / ' + DATA.batch.length, t: '工作项已完成', k: 'ok' });
+  }
+  if (DATA.prompts && arr(DATA.prompts.current)){
+    tiles.push({ n: DATA.prompts.current.length, t: '条提示词当前待用', k: '' });
+  }
+  var hasText = !!(st.name || st.line);
+  showEl('status', hasText);
+  if (!hasText) return;
+
+  var h = '<div class="card status">';
+  if (hasText){
+    h += '<div class="sec">当前状态</div>'
+      + '<div class="now">'
+      +   (st.name ? '<span class="stg">' + esc(st.name) + '</span>' : '')
+      +   (st.line ? (st.name ? ' —— ' : '') + esc(st.line) : '')
+      + '</div>';
+  }
+  if (tiles.length){
+    h += '<div class="stats">';
+    for (var i = 0; i < tiles.length; i++){
+      h += '<div class="stat ' + tiles[i].k + '"><b>' + esc(tiles[i].n) + '</b><span>' + esc(tiles[i].t) + '</span></div>';
+    }
+    h += '</div>';
+  }
+  h += '</div>';
+  document.getElementById('status').innerHTML = h;
+}
+
+function renderStages(){
+  if (!arr(DATA.stages)){ showEl('sec-stages', false); return; }
+  showEl('sec-stages', true);
+  var h = '';
+  for (var i = 0; i < DATA.stages.length; i++){
+    var s = DATA.stages[i];
+    var label = stateLabel(s.state);
+    h += '<div class="step ' + stateClass(s.state) + '">'
+      + '<span class="dot"></span>'
+      + '<div class="n">' + esc(s.n) + '<span class="st">' + label + '</span></div>'
+      + '<div class="nm">' + esc(s.name) + '</div>'
+      + '<div class="ds">' + esc(s.desc) + '</div>'
+      + '<div class="wh">' + esc(s.when) + '</div>'
+      + '</div>';
+  }
+  document.getElementById('stages').innerHTML = h;
+  document.getElementById('sumStages').textContent =
+    DATA.stages.length + ' 段 · 已完成 ' + countBy(DATA.stages, 'done')
+    + '、进行中 ' + countBy(DATA.stages, 'doing')
+    + '、未开始 ' + (DATA.stages.length - countBy(DATA.stages, 'done') - countBy(DATA.stages, 'doing'));
+}
+
+/* 工作项：按 batch[].cat 自动分组（顺序＝各组首次出现的顺序），
+   batchGroups 只提供组名与备注；没有成员的组不渲染。 */
+function renderBatch(){
+  if (!arr(DATA.batch)){ showEl('sec-batch', false); return; }
+  showEl('sec-batch', true);
+
+  var meta = DATA.batchGroups || [];
+  var order = [], map = {};
+  for (var i = 0; i < DATA.batch.length; i++){
+    var b = DATA.batch[i];
+    var cat = b.cat || '未分组';
+    if (!map[cat]){ map[cat] = []; order.push(cat); }
+    map[cat].push(b);
+  }
+
+  var h = '';
+  for (var o = 0; o < order.length; o++){
+    var cat = order[o];
+    var items = map[cat];
+    var m = null;
+    for (var g = 0; g < meta.length; g++){ if (meta[g].cat === cat){ m = meta[g]; break; } }
+    var name = (m && m.n) ? m.n : cat;
+    var note = (m && m.note) ? m.note : '';
+
+    var done = 0, cards = '';
+    for (var k = 0; k < items.length; k++){
+      var it = items[k];
+      if (it.state === 'done') done++;
+      /* 工作项用「待办」；阶段 / 专项用「未开始」——语义不同，有意区分 */
+      var sc = stateClass(it.state);
+      var tag = sc === 'done' ? '<span class="tag ok">已完成</span>'
+              : sc === 'doing' ? '<span class="tag">进行中</span>'
+              : '<span class="tag">待办</span>';
+      cards += '<div class="cell ' + sc + '">'
+        + '<div class="cn">#' + esc(it.n) + ' · ' + esc(cat) + '</div>'
+        + '<div class="cname">' + esc(it.name) + '</div>'
+        + '<div class="cnote">' + esc(it.note) + '</div>'
+        + '<div class="cflags">' + tag + '</div></div>';
+    }
+    h += '<details class="tgroup"><summary>' + esc(name)
+      + '<i>已完成 ' + done + ' / ' + items.length + ' 项</i>'
+      + (note ? '<span class="tnote">' + esc(note) + '</span>' : '')
+      + '</summary><div class="grid">' + cards + '</div></details>';
+  }
+
+  var pend = [];
+  for (var t = 0; t < DATA.batch.length; t++){
+    if (DATA.batch[t].state !== 'done') pend.push(DATA.batch[t].name);
+  }
+  if (pend.length){
+    h += '<div class="pending">待办：尚有 ' + pend.length + ' 项未完成 —— '
+      + esc(pend.join('、')) + '</div>';
+  }
+
+  document.getElementById('batch').innerHTML = h;
+  document.getElementById('sumBatch').textContent =
+    '已完成 ' + countBy(DATA.batch, 'done') + ' / ' + DATA.batch.length + ' 项';
+}
+
+/* 提示词：当前要用（高亮 + 复制 + 难度）→ 接下来的任务链（含难度）→ 已用过（折叠）
+   难度徽标：任务 → 模型分配参考（low 低 / mid 中 / high 高） */
+function lvBadge(level){
+  var t = level === 'low' ? '★☆☆ 低' : level === 'mid' ? '★★☆ 中' : level === 'high' ? '★★★ 高' : '';
+  return t ? '<span class="lv ' + level + '">' + t + '</span>' : '';
+}
+function promptsFor(nodeId){
+  var P = DATA.prompts || {}, out = [];
+  if (!arr(P.current)) return out;
+  for (var i = 0; i < P.current.length; i++){
+    if (P.current[i].node === nodeId) out.push({ cur: P.current[i], idx: i });
+  }
+  return out;
+}
+
+function promptCardHtml(cur, idx){
+  var pid = 'p-current-' + idx;
+  var txt = String(cur.text || '');
+  var h = '<div class="pcard">'
+    + '<div class="phead"><div class="ph-l">'
+    +   '<div class="pt">提示词 · ' + esc(cur.name) + '</div>'
+    +   '<div class="pf">' + esc(cur.to) + '</div>'
+    + '</div>'
+    + '<button type="button" class="copybtn" onclick="copyText(\'' + pid + '\', this)">复制全文</button>'
+    + '</div>';
+  if (cur.level || cur.levelNote){
+    h += '<div class="pmeta">' + lvBadge(cur.level) + '<span>' + esc(cur.levelNote || '') + '</span></div>';
+  }
+  h += '<pre id="' + pid + '">' + esc(txt) + '</pre>'
+    + '<div class="pfoot">完整 ' + txt.length + ' 字 · 窗口可上下滚动</div>'
+    + '</div>';
+  return h;
+}
+
+function renderPrompts(){
+  var P = DATA.prompts || {};
+  var N = DATA.next || {};
+  var queue = arr(P.queue) ? P.queue : [];
+  var main = arr(N.ready) ? N.ready : [];
+  var used = arr(P.used) ? P.used : [];
+  var current = arr(P.current) ? P.current : [];
+  var pending = queue.length + main.length;
+  showEl('sec-prompts', pending > 0 || used.length > 0 || current.length > 0);
+  if (!pending && !used.length && !current.length) return;
+
+  var h = '<div class="chain">';
+
+  if (pending || current.length){
+    h += '<div class="chain-block">';
+    if (pending > 0){
+      h += '<div class="chain-head"><div><b>未完成</b><span class="ch-sub">' + pending + ' 个节点</span></div>'
+        + '<div class="ch-r">主控侧 → 执行侧</div></div>';
+    }
+
+    var matched = {};
+    if (main.length){
+      h += '<div class="side side-main"><div class="side-head"><div class="side-title"><span class="sdot"></span>主控侧<span class="side-count">' + main.length + ' 个节点</span></div></div>';
+      for (var mi = 0; mi < main.length; mi++){
+        var m = main[mi];
+        var mFound = promptsFor(m.id);
+        for (var mf = 0; mf < mFound.length; mf++){ matched[mFound[mf].idx] = true; }
+        h += '<div class="node">'
+          + '<div class="node-top"><span class="own ' + ownClass(m.own) + '">' + esc(m.own || '主控') + '</span>'
+          + '<b>' + esc(m.name || m.text) + '</b>'
+          + (m.state ? '<span class="node-state">' + esc(m.state) + '</span>' : '')
+          + '</div>'
+          + (m.name && m.text ? '<div class="node-note">' + esc(m.text) + '</div>' : '');
+        for (var mj = 0; mj < mFound.length; mj++){ h += promptCardHtml(mFound[mj].cur, mFound[mj].idx); }
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+
+    if (queue.length){
+      h += '<div class="side side-exec"><div class="side-head"><div class="side-title"><span class="sdot"></span>执行侧<span class="side-count">' + queue.length + ' 个节点</span></div>'
+        + '<div class="lv-legend">难度：★☆☆ 低 · ★★☆ 中 · ★★★ 高</div></div>';
+      for (var qi = 0; qi < queue.length; qi++){
+        var q = queue[qi];
+        var allFound = promptsFor(q.id), found = [];
+        for (var fi = 0; fi < allFound.length; fi++){
+          if (!matched[allFound[fi].idx]) found.push(allFound[fi]);
+        }
+        for (var fj = 0; fj < found.length; fj++){ matched[found[fj].idx] = true; }
+        h += '<div class="node">'
+          + '<div class="node-top"><span class="own ' + ownClass(q.owner) + '">' + esc(q.owner || '执行') + '</span>'
+          + '<b>' + esc(q.name) + '</b>'
+          + lvBadge(q.level)
+          + (q.state ? '<span class="node-state">' + esc(q.state) + '</span>' : '')
+          + '</div>'
+          + '<div class="node-note">' + esc(q.note) + '</div>'
+          + (q.advice ? '<div class="node-meta">' + esc(q.advice) + '</div>' : '');
+        if (found.length){
+          for (var fk = 0; fk < found.length; fk++){ h += promptCardHtml(found[fk].cur, found[fk].idx); }
+        } else if (allFound.length){
+          h += '<div class="node-meta">提示词：已在上方节点展示</div>';
+        } else {
+          h += '<div class="node-meta">提示词：待产出</div>';
+        }
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+
+    var unmatched = [];
+    for (var ci = 0; ci < current.length; ci++){
+      if (!matched[ci]) unmatched.push({ cur: current[ci], idx: ci });
+    }
+    if (unmatched.length){
+      h += '<div class="side side-exec"><div class="side-head"><div class="side-title"><span class="sdot"></span>未关联提示词<span class="side-count">' + unmatched.length + ' 条</span></div></div>';
+      for (var ui = 0; ui < unmatched.length; ui++){
+        h += '<div class="node">' + promptCardHtml(unmatched[ui].cur, unmatched[ui].idx) + '</div>';
+      }
+      h += '</div>';
+    }
+
+    h += '</div>';
+  }
+
+  if (used.length){
+    h += '<details class="chain-block done"><summary>已完成 · 已用过的提示词（' + used.length + ' 条）</summary><ul class="done-list">';
+    for (var u = 0; u < used.length; u++){
+      h += '<li><b>' + esc(used[u].name) + '</b>' + (used[u].when ? '（' + esc(used[u].when) + '）' : '') + '：' + esc(used[u].note) + '</li>';
+    }
+    h += '</ul></details>';
+  }
+
+  h += '</div>';
+  document.getElementById('prompts').innerHTML = h;
+  document.getElementById('sumPrompts').textContent =
+    '未完成 ' + pending + ' 个节点（主控 ' + main.length + ' / 执行 ' + queue.length + '）'
+    + ' · 提示词 ' + current.length + ' 条 · 已用 ' + used.length + ' 条';
+}
+
+/* 时间线：默认只显示最近 N 轮（DATA.timelineRecent）；只影响显示，旧条目一条没删 */
+var tlAll = false;
+function renderTimeline(){
+  var hasTL = arr(DATA.timeline);
+  var hasDec = !!(DATA.next && arr(DATA.next.decided));
+  showEl('sec-timeline', hasTL || hasDec);
+  if (!hasTL && !hasDec) return;
+
+  var list = DATA.timeline || [];
+  var recent = DATA.timelineRecent || 5;
+  var older = Math.max(0, list.length - recent);
+  var start = tlAll ? 0 : older;
+
+  var top = '';
+  if (hasTL && older > 0){
+    top = '<button type="button" class="tl-more" id="tlMore">'
+      + (tlAll ? '收起，只看最近 ' + recent + ' 轮' : '展开更早的 ' + older + ' 轮')
+      + '</button>';
+  }
+  document.getElementById('tlTop').innerHTML = top;
+
+  var h = '';
+  if (hasTL){
+    for (var i = start; i < list.length; i++){
+      var t = list[i];
+      h += '<div class="tl-item">'
+        + '<div class="tl-t">' + esc(t.t) + '</div>'
+        + '<div class="tl-h">' + esc(t.h) + '</div>'
+        + '<div class="tl-d">' + esc(t.d) + '</div>'
+        + (t.e ? '<div class="tl-e">产出：' + esc(t.e) + '</div>' : '')
+        + '</div>';
+    }
+  }
+  document.getElementById('timeline').innerHTML = h;
+
+  var decEl = document.getElementById('decisions');
+  if (hasDec){
+    var dh = '<details class="fold"><summary>已经定下来（' + DATA.next.decided.length + ' 条，点开看）</summary><div class="fold-body"><ul>';
+    for (var d = 0; d < DATA.next.decided.length; d++){
+      var item = DATA.next.decided[d];
+      dh += '<li><span class="own">' + esc(item.own) + '</span>' + esc(item.text) + '</li>';
+    }
+    dh += '</ul></div></details>';
+    decEl.innerHTML = dh;
+    decEl.hidden = false;
+  } else {
+    decEl.innerHTML = '';
+    decEl.hidden = true;
+  }
+
+  var parts = [];
+  if (hasTL) parts.push('共 ' + list.length + ' 轮' + (older > 0 && !tlAll ? ' · 默认显示最近 ' + recent + ' 轮' : ''));
+  if (hasDec) parts.push(DATA.next.decided.length + ' 条决策');
+  document.getElementById('sumTL').textContent = parts.join(' · ');
+
+  var btn = document.getElementById('tlMore');
+  if (btn) btn.onclick = function(){ tlAll = !tlAll; renderTimeline(); };
+}
+
+function renderFiles(){
+  if (!arr(DATA.files)){ showEl('sec-files', false); return; }
+  showEl('sec-files', true);
+  var typeLabel = { ro: '只读文档', do: '生成产物' };
+  var h = '<tr><th>路径</th><th>说明</th><th>类型</th></tr>';
+  for (var i = 0; i < DATA.files.length; i++){
+    var f = DATA.files[i];
+    h += '<tr><td>' + esc(f.p) + '</td>'
+      + '<td>' + esc(f.tag) + '</td>'
+      + '<td><span class="pill ' + esc(f.k) + '">' + esc(typeLabel[f.k] || f.k || '—') + '</span></td></tr>';
+  }
+  document.getElementById('files').innerHTML = h;
+  document.getElementById('sumFiles').textContent =
+    DATA.files.length + ' 个 · 不记大小/时间（以 git 为准）';
+}
+
+function renderRisks(){
+  if (!arr(DATA.risks)){ showEl('sec-risks', false); return; }
+  showEl('sec-risks', true);
+  var h = '', you = 0;
+  for (var i = 0; i < DATA.risks.length; i++){
+    var raw = DATA.risks[i];
+    var r = typeof raw === 'string' ? { text: raw } : raw;
+    if (r.owner === '你') you++;
+    h += '<div class="risk">'
+      + (r.owner ? '<span class="own ' + ownClass(r.owner) + '">' + esc(r.owner) + '</span>' : '')
+      + (r.kind ? '<span class="rk-kind">' + esc(r.kind) + '</span>' : '')
+      + '<span>' + esc(r.text) + '</span></div>';
+  }
+  document.getElementById('risks').innerHTML = h;
+  document.getElementById('sumRisks').textContent =
+    DATA.risks.length + ' 条' + (you ? ' · 其中 ' + you + ' 条待你拍板' : ' · 记档，不阻塞');
+}
+
+/* 页内导航：编号胶囊，无下划线、无图标；只为「有数据、会渲染」的区块生成 */
+function renderAnchors(){
+  var secs = [
+    ['status', '现状', !!(DATA.stage && (DATA.stage.name || DATA.stage.line))],
+    ['sec-decide', '待办', !!(DATA.next && arr(DATA.next.decide))],
+    ['sec-stages', '阶段', arr(DATA.stages)],
+    ['sec-prompts', '任务链', !!(DATA.prompts && (arr(DATA.prompts.current) || arr(DATA.prompts.queue) || arr(DATA.prompts.used))) || !!(DATA.next && arr(DATA.next.ready))],
+    ['sec-batch', '工作项', arr(DATA.batch)],
+    ['sec-topics', '专项', arr(DATA.topics)],
+    ['sec-timeline', '记录', arr(DATA.timeline) || !!(DATA.next && arr(DATA.next.decided))],
+    ['sec-risks', '风险', arr(DATA.risks)],
+    ['sec-files', '文件', arr(DATA.files)]
+  ];
+  var h = '', nav = document.getElementById('anchors'), n = 0;
+  for (var i = 0; i < secs.length; i++){
+    if (!secs[i][2]) continue;
+    n++;
+    var num = (n < 10 ? '0' : '') + n;
+    h += '<a href="#' + secs[i][0] + '" data-sec="' + secs[i][0] + '"><i>' + num + '</i>' + esc(secs[i][1]) + '</a>';
+  }
+  nav.innerHTML = h;
+  nav.hidden = !h;
+  nav.onclick = function(ev){
+    var a = ev.target.closest ? ev.target.closest('a[data-sec]') : null;
+    if (!a) return;
+    ev.preventDefault();
+    var sec = document.getElementById(a.getAttribute('data-sec'));
+    if (!sec) return;
+    if ('open' in sec) sec.open = true;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(function(){ sec.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); }, 0);
+  };
+}
+
+/* 专项覆盖：通用区块，不再绑死「调研」语义；无数据整节不渲染 */
+function renderTopics(){
+  if (!arr(DATA.topics)){ showEl('sec-topics', false); return; }
+  showEl('sec-topics', true);
+  var h = '';
+  for (var i = 0; i < DATA.topics.length; i++){
+    var t = DATA.topics[i];
+    var sc = stateClass(t.state);
+    var label = stateLabel(t.state);
+    var tag = sc === 'done' ? '<span class="tag ok">' + label + '</span>'
+            : '<span class="tag">' + label + '</span>';
+    h += '<div class="cell ' + sc + '">'
+      + '<div class="cn">' + esc(t.cntText) + '</div>'
+      + '<div class="cname">' + esc(t.n) + '</div>'
+      + '<div class="cnote">' + esc(t.note) + '</div>'
+      + '<div class="cflags">' + tag + '</div>'
+      + '</div>';
+  }
+  document.getElementById('topics').innerHTML = h;
+  var tDone = countBy(DATA.topics, 'done'), tDoing = countBy(DATA.topics, 'doing');
+  document.getElementById('sumTopics').textContent =
+    DATA.topics.length + ' 项专项 · 已完成 ' + tDone
+    + '、进行中 ' + tDoing
+    + '、未开始 ' + (DATA.topics.length - tDone - tDoing);
+}
+
+/* 页面数据截止时间：页头「数据截止」、页脚各一处（改本页内容时同步改 DATA.updated） */
+document.getElementById('upd').textContent = DATA.updated;
+document.getElementById('updFoot').textContent = '页面数据截止时间 ' + DATA.updated + '（更新本页内容时同步更新）';
+
+renderMasthead(); renderStatus(); renderDecide(); renderTopics(); renderStages(); renderBatch();
+renderPrompts(); renderTimeline(); renderFiles(); renderRisks(); renderAnchors();
+
+/* 跟随系统深浅色切换，重新同步 theme-color（颜色来自 CSS --brand） */
+if (window.matchMedia){
+  var themeMq = window.matchMedia('(prefers-color-scheme: dark)');
+  if (themeMq.addEventListener) themeMq.addEventListener('change', renderMasthead);
+}
+</script>
+</body>
+</html>

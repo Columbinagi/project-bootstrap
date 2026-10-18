@@ -17,6 +17,7 @@ dist/
 .trae-html-share-packages/
 .claude/
 .cursor/
+.workbuddy/
 
 # 系统文件
 Thumbs.db

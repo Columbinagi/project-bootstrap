@@ -5,7 +5,7 @@
 ```
 动手之前                          动手之后
 我的项目/                         我的项目/
-├── 资料.docx                     ├── AGENTS.md    ← 规矩（新会话自动加载）
+├── 资料.docx                     ├── AGENTS.md    ← 规矩（新会话开场先读）
 ├── 笔记.md                       ├── MEMORY.md    ← 进度与决策（接手先读）
 ├── 最终版2.html                  ├── PRD.md       ← 需求基准（写完先停下来等你审）
 └── 旧版/                         └── ROADMAP.md   ← 计划与关卡（问题没答案不放行）
@@ -19,7 +19,7 @@
 | **新项目 · 照着样板做** | 一个已有的样板项目 | 抽骨架（母版 ／ 工具脚本 ／ 目录与文档结构）→ 改接线（先列清单过目）→ **真跑校验**；不搬内容数据与进度文档 |
 | **老项目 · 回头对齐** | 一个已经在跑的项目 | **只读取证** → 出差异清单交审核 → 一次改到位（动了目录就逐个修链接并实测） |
 
-两种形态（靠一道题判定，与人员分工无关）：**标准版**（只有一类主业）／ **PRO 版**（双主业 → `content/` ＋ `engineering/` ＋ `CONTRACT.md`）。
+**`engineering/` 工程区立项即建**（装工具脚本与项目进度页的投影脚本），`content/` 内容区按需，`CONTRACT.md` 有线间接口才建 —— 目录与文档**按需生长**。
 
 ## 安装
 
@@ -56,7 +56,7 @@ npx skills add Columbinagi/project-bootstrap
 > ② 建骨架文档（`AGENTS` ／ `MEMORY` ／ `USER` ／ `SOUL` ／ `PRD`）＋ `git init`；
 > ③ 写完 `PRD.md` **就停下** —— 把前提假设逐条列出来给你审；
 > ④ 你审过，才写 `ROADMAP.md`（关卡与阶段），然后开工；
-> ⑤ 之后每次会话，`AGENTS.md` 自动在场，Agent 对着「产物长出来的顺序」表自查"现在该长什么"。
+> ⑤ 之后每次会话**开场先读** `AGENTS.md`（→ `MEMORY.md` → `SOUL.md`），对着「产物长出来的顺序」表自查"现在该长什么"。
 
 > 不适合用的场合：只是聊项目结构、整理文件夹、改个名之类的琐事，或者还没决定要立一个项目。
 
@@ -75,20 +75,22 @@ npx skills add Columbinagi/project-bootstrap
 
 | 文件 | 作用 | 什么时候长出来 |
 |---|---|---|
-| `AGENTS.md` | 项目规则总纲（新会话自动加载） | 立项 |
+| `AGENTS.md` | 项目规则总纲（新会话开场先读） | 立项 |
 | `MEMORY.md` | 进度与决策索引（接手先读） | 立项 |
 | `USER.md` | 用户偏好与雷区 | 立项 |
-| `SOUL.md` | 协作准则（按线附写作纪律 ／ 编码准则） | 立项 |
+| `SOUL.md` | 协作准则（按区附写作纪律 ／ 编码准则） | 立项 |
 | `PRD.md` | 需求基准（改动先与它比对） | 立项 |
 | `ROADMAP.md` | 计划与关卡 | PRD 审核通过后 |
-| `CONTRACT.md` | 线间字段契约 | 仅 PRO 版，且产出之前 |
+| `CONTRACT.md` | 线间字段契约（**有线间接口才建**） | 出现线间接口约定时，**产出之前** |
 | `ACCEPTANCE.md` | 验收记录（逐条对 PRD 的实测值） | 进入验收前 |
+| `engineering/` | 工程区：工具脚本 ＋ 进度页投影脚本 | **立项即建** |
+| `docs/项目进度.html` | 给人看的进度页（投影件，不手改） | **立项即建** |
 
-关卡：**G1 开工 → G2 定案 → G3 收口 → G4 验收**。
+关卡：**G1 可以开始设计 → G2 可以开始动手 → G3 可以进入主体制作 → G4 可以验收**。
 
 ## 需要什么
 
-看你的 Agent 能做什么：**能读写文件、能执行命令**（建目录 ／ git ／ 写文件），才能把骨架建起来；**能提问**，才能采集偏好、答那道判定题。缺了哪一项，它会说明哪部分没做。
+看你的 Agent 能做什么：**能读写文件、能执行命令**（建目录 ／ git ／ 写文件），才能把骨架建起来；**能提问**，才能采集偏好。缺了哪一项，它会说明哪部分没做。
 
 **git 可选**：没有 git 就跳过版本库步骤，并在收尾时如实说明。它不绑定某个 Agent 工具或模型，但主要在 DSH 上开发与验证，其他工具与模型没有逐一试过。
 
@@ -108,7 +110,7 @@ git clone https://github.com/Columbinagi/project-bootstrap.git "%USERPROFILE%\.d
 
 ## 版本与更新
 
-- **当前版本**：`v1.1.1`（写在 `SKILL.md` 的 frontmatter 里）
+- **当前版本**：`v1.2.0`（写在 `SKILL.md` 的 frontmatter 里）
 - **更新**：`git pull`；用社区 CLI 装的话：`npx skills update`
 - **逐版变更**：`references/versions.md` §十一（每次改动一行：版本 ／ 变更 ／ 性质）
 
@@ -122,11 +124,12 @@ git clone https://github.com/Columbinagi/project-bootstrap.git "%USERPROFILE%\.d
 project-bootstrap/
 ├── SKILL.md        ← 入口（frontmatter ＋ 主流程正文）
 ├── references/     ← 正文
-│   ├── versions.md   ← 落地清单 ＋ 变更记录 ＋ 版本制度
+│   ├── versions.md   ← 落地清单（领地与按需规则）＋ 变更记录 ＋ 版本制度
 │   ├── realign.md    ← 场景二：回头对齐
 │   ├── derive.md     ← 场景一分支：照样板做
-│   ├── templates/    ← 给项目用的骨架文档模板
-│   └── pro/          ← 准则附录（内容线写作纪律 ／ 代码线编码准则）
+│   ├── progress-page.md ← 项目进度页说明（立项即建）
+│   ├── templates/    ← 给项目用的骨架文档模板（含进度页模板与投影脚本）
+│   └── guidelines/   ← 准则附录（内容写作纪律 ／ 编码准则）
 ├── README.md       ← 本文件
 └── LICENSE         ← MIT
 ```
