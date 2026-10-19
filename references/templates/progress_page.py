@@ -612,10 +612,9 @@ def run_check(region):
     if dup:
         problems.append('提示词在 current 与 used 重复：%s —— 已派发的应立即移出 current' % '、'.join(sorted(dup)))
 
-    if (not ready.strip() and not decide.strip() and not current.strip()
-            and not (queue or '').strip()
-            and not re.search(r'(?m)^[ \t]*idle[ \t]*:[ \t]*true\b', region)):
-        problems.append(CHECK_EMPTY_HINT)
+    idle_note = re.search(r"(?m)^[ \t]*idleNote[ \t]*:[ \t]*'([^']*)'", region)
+    if not ready.strip() and not (idle_note and idle_note.group(1).strip()):
+        problems.append('主控侧空着：next.ready 为空时必须写 next.idleNote 一句话（主控在等什么／下一步做什么）')
 
     up = UPDATED_RE.search(region)
     if not up:

@@ -362,7 +362,7 @@ footer{font-size:12.5px;color:var(--text-3);margin-top:26px;line-height:1.8}
                   queue:[{ id, name, note, owner 执行|主控|你, state 待分发|待产出, level, advice 建议 }],
                   used:[{ name, when, note }] }
    timeline     [{ t 时间, h 标题, d 描述, e 产出文件 }]
-   next         { decide → 「需要你做的」；ready → 任务链「主控侧」；decided → 「做过什么」折叠；
+   next         { decide → 「需要你做的」；ready → 任务链「主控侧」；idleNote → ready 为空时的待命说明；decided → 「做过什么」折叠；
                   每组条目 decide/decided [{ own 归属, text 内容 }]；ready [{ id, own, name, text, state }] }
                 —— 提示词挂载：prompts.current[].node 对应两侧节点的 id；
                    执行侧默认挂提示词；主控侧平时为空，只有换届（新主控接手）时才挂一条。
@@ -733,12 +733,8 @@ function renderPrompts(){
   showEl('sec-prompts', true);
 
   var h = '<div class="chain">';
-  if (!pending && !current.length){
-    h += '<div style="padding:12px;border:1px dashed rgba(127,127,127,.45);border-radius:8px;color:inherit;opacity:.78;font-size:13px">当前没有进行中的任务链，也没有待分发的提示词。若这是刚建的项目，请先在 next ／ prompts 里填上第一批任务与提示词。</div>';
-    if (!used.length){ h += '</div>'; document.getElementById('prompts').innerHTML = h; return; }
-  }
-
-  if (pending || current.length){
+  /* 主控侧常驻：即使没有进行中任务，也渲染「待命」＋ next.idleNote，不让任务链整块消失 */
+  if (true){
     h += '<div class="chain-block">';
     if (pending > 0){
       h += '<div class="chain-head"><div><b>未完成</b><span class="ch-sub">' + pending + ' 个节点</span></div>'
@@ -746,8 +742,10 @@ function renderPrompts(){
     }
 
     var matched = {};
+    var idleNote = ((N && N.idleNote) || '').trim();
+    h += '<div class="side side-main"><div class="side-head"><div class="side-title"><span class="sdot"></span>主控侧<span class="side-count">'
+      + (main.length ? main.length + ' 个节点' : '待命') + '</span></div></div>';
     if (main.length){
-      h += '<div class="side side-main"><div class="side-head"><div class="side-title"><span class="sdot"></span>主控侧<span class="side-count">' + main.length + ' 个节点</span></div></div>';
       for (var mi = 0; mi < main.length; mi++){
         var m = main[mi];
         var mFound = promptsFor(m.id);
@@ -761,8 +759,12 @@ function renderPrompts(){
         for (var mj = 0; mj < mFound.length; mj++){ h += promptCardHtml(mFound[mj].cur, mFound[mj].idx); }
         h += '</div>';
       }
-      h += '</div>';
+    } else {
+      h += '<div class="node"><div class="node-top"><span class="own main">主控</span><b>待命</b>'
+        + '<span class="node-state">无进行中任务</span></div>'
+        + '<div class="node-note">' + esc(idleNote || '本轮已收口，等下一步指令。') + '</div></div>';
     }
+    h += '</div>';
 
     if (queue.length){
       h += '<div class="side side-exec"><div class="side-head"><div class="side-title"><span class="sdot"></span>执行侧<span class="side-count">' + queue.length + ' 个节点</span></div>'
