@@ -126,7 +126,7 @@ git clone https://github.com/Columbinagi/project-bootstrap.git "%USERPROFILE%\.d
 
 ## 版本与更新
 
-- **当前版本**：`v1.4.0`（写在 `SKILL.md` 的 frontmatter 里）
+- **当前版本**：`v1.4.1`（写在 `SKILL.md` 的 frontmatter 里）
 - **更新**：`git pull`；用社区 CLI 装的话：`npx skills update`
 - **每版改了什么**：[Releases](https://github.com/Columbinagi/project-bootstrap/releases)（摘要）／ `references/versions.md` §十一（逐条：版本 ／ 变更 ／ 性质）
 

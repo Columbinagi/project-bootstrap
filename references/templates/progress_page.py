@@ -564,9 +564,32 @@ STATE_BAD = ('已完成', '已定', '已移出')
 
 
 def _block(region, key):
-    # 只取到本数组的 `]` 为止（对象里不含 `]`，故不会跨到下一个数组）
-    m = re.search(r'(?m)^[ \t]*' + key + r'[ \t]*:[ \t]*\[([^\]]*)\]', region)
-    return m.group(1) if m else None
+    """取 key 对应数组的内容：按引号与括号扫描，字符串里的 `]` 不截断。"""
+    m = re.search(r'(?m)^[ \t]*' + key + r'[ \t]*:[ \t]*\[', region)
+    if not m:
+        return None
+    start = m.end() - 1
+    depth = 0
+    quote = None
+    j = start
+    while j < len(region):
+        ch = region[j]
+        if quote:
+            if ch == '\\':
+                j += 2
+                continue
+            if ch == quote:
+                quote = None
+        elif ch in ("'", '"'):
+            quote = ch
+        elif ch == '[':
+            depth += 1
+        elif ch == ']':
+            depth -= 1
+            if depth == 0:
+                return region[start + 1:j]
+        j += 1
+    return None
 
 
 def run_check(region):
@@ -590,7 +613,8 @@ def run_check(region):
         problems.append('提示词在 current 与 used 重复：%s —— 已派发的应立即移出 current' % '、'.join(sorted(dup)))
 
     if (not ready.strip() and not decide.strip() and not current.strip()
-            and not (queue or '').strip() and 'idle' not in region):
+            and not (queue or '').strip()
+            and not re.search(r'(?m)^[ \t]*idle[ \t]*:[ \t]*true\b', region)):
         problems.append(CHECK_EMPTY_HINT)
 
     up = UPDATED_RE.search(region)
@@ -649,8 +673,6 @@ def main(argv=None):
     except OSError as exc:
         die('读不到页面 %s（%s）' % (page_path, exc))
 
-    src = load_sources(root)                                  # 只读 MD
-
     # ① 只认 DATA 区：区间之外（渲染代码）一个字符都不碰
     data_start, data_end = locate_data_region(page_text)
     region = page_text[data_start:data_end]
@@ -666,6 +688,7 @@ def main(argv=None):
         print('✓ 进度页体检通过：无已完成残留、无重复提示词、updated 格式正确')
         return 0
 
+    src = load_sources(root)                                  # 只读 MD（--check 不需要）
 
     # ② 区间内定位两块（各必须恰好 1 处）
     stage_match = find_block(region, STAGE_BLOCK_RE, 'stage')
