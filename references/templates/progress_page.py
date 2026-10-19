@@ -79,7 +79,10 @@ import datetime
 import glob
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 
 # ── 常量（口径集中在这里，改口径只改这几行）────────────────────────────────
 PAGE_GLOB = '项目进度*.html'
@@ -592,7 +595,33 @@ def _block(region, key):
     return None
 
 
-def run_check(region):
+def _js_syntax_problem(page_text):
+    """页面 <script> 能否被 node 解析；没有 node 就跳过（返回 None）。"""
+    if shutil.which('node') is None:
+        return None
+    blocks = re.findall(r'(?s)<script>(.*?)</script>', page_text)
+    if not blocks:
+        return None
+    js = max(blocks, key=len)
+    fd, path = tempfile.mkstemp(suffix='.js')
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as fh:
+            fh.write(js)
+        proc = subprocess.run(['node', '--check', path],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if proc.returncode != 0:
+            err = (proc.stderr or b'').decode('utf-8', 'replace').splitlines()
+            first = next((l for l in err if 'SyntaxError' in l), err[0] if err else '未知错误')
+            return '页面 <script> 语法错误（node --check）：%s' % first.strip()
+        return None
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+
+
+def run_check(region, page_text=None):
     problems = []
     ready = _block(region, 'ready')
     decide = _block(region, 'decide')
@@ -624,6 +653,11 @@ def run_check(region):
 
     if '{{' in region:
         problems.append('DATA 区仍有 {{…}} 占位符未替换 —— 交付的必须是填好的成品页')
+
+    if page_text is not None:
+        js_problem = _js_syntax_problem(page_text)
+        if js_problem:
+            problems.append(js_problem)
 
     return problems
 
@@ -678,7 +712,7 @@ def main(argv=None):
     newline = region_newline(region)
 
     if args.check:
-        problems = run_check(region)
+        problems = run_check(region, page_text)
         if problems:
             print('✗ 进度页体检未通过（%d 条）：' % len(problems))
             for item in problems:

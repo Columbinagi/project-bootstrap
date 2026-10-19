@@ -444,3 +444,4 @@
 | 20261019 | v1.4.0 | **进度页体检进 skill（次版本）**：`progress_page.py` 新增 `--check` —— 任务链无已完成残留 ／ 提示词 current 与 used 不重名 ／ 全空需 `idle: true` 声明 ／ 无 `{{}}` ／ `updated` 格式；`progress-page.md`、`templates/AGENTS.md` §八 A、`SKILL.md` 第 7 步同步为「收尾必跑」 | 能力新增（次版本） |
 | 20261019 | v1.4.1 | **`--check` 三处加固（补丁）**：按引号扫描数组（`]` 不再截断 → 消除假通过）／ `--check` 移到 `load_sources` 之前（无 MD 也可跑）／ `idle` 改行内键值判定 | 修正（补丁） |
 | 20261019 | v1.5.0 | **主控侧常驻（次版本）**：`ready` 为空也渲染「主控 · 待命」＋ `next.idleNote`，任务链不再整块消失；`--check` 改为「`ready` 空必须有 `idleNote`」；执行侧仍可折叠 | 口径新增（次版本） |
+| 20261019 | v1.6.0 | **体检纳入 JS 语法（次版本）**：`--check` 第 ⑥ 项 —— 有 `node` 时对最大 `<script>` 跑 `node --check`；§八 A ⑥ 改为「rc 0 才允许提交」；`progress-page.md`、`AGENTS.md` §二.6、`SKILL.md` 第 7 步同步 | 判据新增（次版本） |
