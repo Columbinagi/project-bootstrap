@@ -13,7 +13,7 @@
    1) 复制本文件到 docs/项目进度.html —— 文件名固定（不带日期）；「建档日」写进页内（如 project.tagline），填一次
    2) 全文替换 {{...}} 占位符；替换完搜索 "{{" 应为 0（说明文字自身除外）
    3) 平时只改底部 DATA 区，不手改渲染代码；改完同步更新 DATA.updated
-   4) 空数据（缺键或空数组）→ 对应区块整节隐藏，不留空卡片
+   4) 空数据（缺键或空数组）→ 对应区块整节隐藏（**任务链与提示词、需要你做的除外**：给空态提示）
 
    硬约束（不要为了「好看」破例）
    - 零外部请求：不引 CDN / 在线字体 / 图标库 / 图表库
@@ -273,7 +273,7 @@ details.card[open]>summary{border-bottom:1px solid var(--border-light)}
   border-bottom:1px solid var(--border-light)}
 .risk:last-child{border-bottom:0}
 
-/* 空数据不渲染：整节隐藏，不留空卡片 */
+/* 空数据不渲染：整节隐藏；任务链与需要你做的除外（给空态） */
 [hidden]{display:none!important}
 .foot-upd{margin-top:8px;font-family:var(--mono);font-size:12px;color:var(--text-3)}
 
@@ -348,7 +348,7 @@ footer{font-size:12.5px;color:var(--text-3);margin-top:26px;line-height:1.8}
    (c) 当前待用哪些          → prompts.current（挂在对应执行节点里，多条并列、每条独立复制）
    (d) 下一个节点干什么       → prompts.queue（执行侧）＋ next.ready（主控侧）＋ next.decide（你要做的）
 
-   —— 字段速查（缺键或空数组 → 对应区块整节隐藏，不留空卡片）——
+   —— 字段速查（缺键或空数组 → 整节隐藏；任务链与需要你做的除外，给空态提示）——
    project      页头身份：{ kicker 眉标, name 项目名, tagline 一句话定义 }
    updated      页面数据截止时间（更新本页任何内容时同步改这里；页头、页脚各显示一处）
    stage        { name 阶段名, line 一句话现状 }（无此键或两者皆空 → 状态区不渲染）
@@ -556,7 +556,7 @@ function renderDecide(){
   var list = arr(N.decide) ? N.decide : [];
   showEl('sec-decide', true);
   if (!list.length){
-    document.getElementById('decide').innerHTML = '<div style="padding:10px 12px;border:1px dashed #c9c7bd;border-radius:8px;color:#6b6a64;font-size:13px">暂无需要你拍板的事 —— 当前事项已收口。</div>';
+    document.getElementById('decide').innerHTML = '<div style="padding:10px 12px;border:1px dashed rgba(127,127,127,.45);border-radius:8px;color:inherit;opacity:.78;font-size:13px">暂无需要你拍板的事。若这是刚建的项目，请先在 next.decide 里填上第一批待办。</div>';
     return;
   }
   var h = '<div class="acts">';
@@ -733,10 +733,9 @@ function renderPrompts(){
   showEl('sec-prompts', true);
 
   var h = '<div class="chain">';
-  if (!pending && !used.length && !current.length){
-    h += '<div style="padding:12px;border:1px dashed #c9c7bd;border-radius:8px;color:#6b6a64;font-size:13px">当前没有进行中的任务链，也没有待分发的提示词。下一步见「需要你做的」；两边都空 ＝ 本轮已收口。</div></div>';
-    document.getElementById('prompts').innerHTML = h;
-    return;
+  if (!pending && !current.length){
+    h += '<div style="padding:12px;border:1px dashed rgba(127,127,127,.45);border-radius:8px;color:inherit;opacity:.78;font-size:13px">当前没有进行中的任务链，也没有待分发的提示词。若这是刚建的项目，请先在 next ／ prompts 里填上第一批任务与提示词。</div>';
+    if (!used.length){ h += '</div>'; document.getElementById('prompts').innerHTML = h; return; }
   }
 
   if (pending || current.length){

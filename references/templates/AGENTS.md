@@ -193,7 +193,7 @@
 | 15 | **内容源** | `content/`（**按需**；**内部结构由项目自己定**） |
 | 16 | 母版与模板 / 技能 | `templates/` / `skills/` |
 | 17 | **线间接口 / 字段契约** | `CONTRACT.md`（**出现线间接口约定才建**）；`PRD.md` 只放指针 ＋ 变更记录（见 `versions.md` §十） |
-| 18 | **项目进度页**（投影件） | `docs/项目进度.html` —— **立项即建**；**投影字段不手改**（`stage`／`stages`／`updated` 由脚本投），其余字段手改；改源头 MD 后由主控重跑 `engineering/progress_page.py` |
+| 18 | **项目进度页**（投影件） | `docs/项目进度.html` —— **立项即建**；**投影字段不手改**（`stage`／`stages` 由脚本投；`updated` 手填），其余字段手改；改源头 MD 后由主控重跑 `engineering/progress_page.py` |
 
 ## 六、命名规范
 
