@@ -70,7 +70,7 @@ npx skills add Columbinagi/project-bootstrap
 > ② 建骨架文档（`AGENTS` ／ `MEMORY` ／ `USER` ／ `SOUL` ／ `PRD`）＋ `git init`；
 > ③ 写完 `PRD.md` **就停下** —— 把前提假设逐条列出来给你审；
 > ④ 你审过，才写 `ROADMAP.md`（关卡与阶段），然后开工；
-> ⑤ 之后每次会话**开场先读** `AGENTS.md`（→ `MEMORY.md` → `SOUL.md`），对着「产物长出来的顺序」表自查"现在该长什么"。
+> ⑤ 之后每次会话**开场只读最小集**（`AGENTS.md` §一～§三 ＋ `MEMORY.md` §2 顶部两条与 §4；其余按需查），对着「产物长出来的顺序」表自查"现在该长什么"。
 
 > 不适合用的场合：只是聊项目结构、整理文件夹、改个名之类的琐事，或者还没决定要立一个项目。
 
@@ -125,7 +125,7 @@ git clone https://github.com/Columbinagi/project-bootstrap.git "%USERPROFILE%\.d
 
 ## 版本与更新
 
-- **当前版本**：`v1.2.1`（写在 `SKILL.md` 的 frontmatter 里）
+- **当前版本**：`v1.3.0`（写在 `SKILL.md` 的 frontmatter 里）
 - **更新**：`git pull`；用社区 CLI 装的话：`npx skills update`
 - **每版改了什么**：[Releases](https://github.com/Columbinagi/project-bootstrap/releases)（摘要）／ `references/versions.md` §十一（逐条：版本 ／ 变更 ／ 性质）
 
