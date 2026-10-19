@@ -555,6 +555,56 @@ def resolve_page(root, page_arg):
     return os.path.abspath(candidates[0])
 
 
+# ── 收尾体检（--check）：把「任务链 / 提示词 / updated」三条文字规则变成可执行 ──
+# 只读页面，不写盘。退出码 0 ＝ 通过；3 ＝ 有未通过项。
+CHECK_EMPTY_HINT = ('任务链、待拍板、提示词全为空 —— 若不是本轮已收口，请补 next ／ prompts；'
+                    '若确已收口，在 next 里写 idle: true')
+
+STATE_BAD = ('已完成', '已定', '已移出')
+
+
+def _block(region, key):
+    # 只取到本数组的 `]` 为止（对象里不含 `]`，故不会跨到下一个数组）
+    m = re.search(r'(?m)^[ \t]*' + key + r'[ \t]*:[ \t]*\[([^\]]*)\]', region)
+    return m.group(1) if m else None
+
+
+def run_check(region):
+    problems = []
+    ready = _block(region, 'ready')
+    decide = _block(region, 'decide')
+    current = _block(region, 'current')
+    used = _block(region, 'used')
+    queue = _block(region, 'queue')
+    if ready is None or decide is None or current is None:
+        return ['DATA 区缺 next.ready ／ next.decide ／ prompts.current 之一 —— 结构不认识，不猜']
+
+    for st in re.findall(r"state\s*:\s*'([^']*)'", ready):
+        if st in STATE_BAD:
+            problems.append('任务链里挂着「%s」项 —— 做完的应移入 timeline ／ next.decided' % st)
+
+    names_cur = set(re.findall(r"name\s*:\s*'([^']*)'", current))
+    names_used = set(re.findall(r"name\s*:\s*'([^']*)'", used or ''))
+    dup = names_cur & names_used
+    if dup:
+        problems.append('提示词在 current 与 used 重复：%s —— 已派发的应立即移出 current' % '、'.join(sorted(dup)))
+
+    if (not ready.strip() and not decide.strip() and not current.strip()
+            and not (queue or '').strip() and 'idle' not in region):
+        problems.append(CHECK_EMPTY_HINT)
+
+    up = UPDATED_RE.search(region)
+    if not up:
+        problems.append('DATA 区找不到 updated')
+    elif not re.match(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$', up.group('val')):
+        problems.append('updated 格式应为 YYYY-MM-DD HH:MM（当前 %r）' % up.group('val'))
+
+    if '{{' in region:
+        problems.append('DATA 区仍有 {{…}} 占位符未替换 —— 交付的必须是填好的成品页')
+
+    return problems
+
+
 def parse_args(argv):
     parser = argparse.ArgumentParser(
         prog='progress_page.py',
@@ -564,6 +614,7 @@ def parse_args(argv):
                 '  python progress_page.py .                 # dry-run：只打印将改哪几处\n'
                 '  python progress_page.py . --write         # 落盘\n'
                 '  python progress_page.py . --page docs/项目进度.html\n'
+                '  python progress_page.py . --check        # 收尾体检（只读）\n'
                 '\n'
                 '投影范围（v1 只做这三项，其余区块一律不动）\n'
                 '  stage 区  ← 当前阶段名 ＋ 现状一句话\n'
@@ -573,13 +624,15 @@ def parse_args(argv):
                 '定位方式（模板不加任何标记，故不依赖标记、只按结构定位）\n'
                 '  只在 `var DATA = {` … 顶格 `};` 区间内改；区内 `stage:` / `stages:` 各须恰好 1 处\n'
                 '\n'
-                '退出码：0 成功；1 投影失败；2 命令行用法错误\n'
+                '退出码：0 成功；1 投影失败；2 命令行用法错误；3 体检未通过\n'
                 '约束：只读 MD、幂等、默认 dry-run、失败不产半成品、只有主控能触发。'))
     parser.add_argument('root', help='项目根目录（含 MEMORY.md / docs/ 的那一层）')
     parser.add_argument('--write', action='store_true',
                         help='真正落盘（默认只 dry-run 打印，不写盘）')
     parser.add_argument('--page', metavar='路径',
                         help='显式指定页面；默认取 <根>/docs/ 下唯一一个 `项目进度*.html`')
+    parser.add_argument('--check', action='store_true',
+                        help='只做收尾体检（任务链／提示词／updated），不投影、不写盘')
     return parser.parse_args(argv)
 
 
@@ -602,6 +655,17 @@ def main(argv=None):
     data_start, data_end = locate_data_region(page_text)
     region = page_text[data_start:data_end]
     newline = region_newline(region)
+
+    if args.check:
+        problems = run_check(region)
+        if problems:
+            print('✗ 进度页体检未通过（%d 条）：' % len(problems))
+            for item in problems:
+                print('  - ' + item)
+            return 3
+        print('✓ 进度页体检通过：无已完成残留、无重复提示词、updated 格式正确')
+        return 0
+
 
     # ② 区间内定位两块（各必须恰好 1 处）
     stage_match = find_block(region, STAGE_BLOCK_RE, 'stage')
