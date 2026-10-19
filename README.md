@@ -21,7 +21,7 @@
 
 **`engineering/` 工程区立项即建**（装工具脚本与项目进度页的投影脚本），`content/` 内容区按需，`CONTRACT.md` 有线间接口才建 —— 目录与文档**按需生长**。
 
-## 这一版新在哪（v1.2）
+## 这一版新在哪（v1.2 → v1.3）
 
 | 新能力 | 你会在什么时候感觉到 |
 |---|---|
@@ -31,6 +31,7 @@
 | **复验**：主要任务完成后另派一路独立核对 | 结论不是它自己说自己对 |
 | **提问方式**：一次问完；关键选择给 2–3 个选项 ＋ 推荐 ＋ 各自代价 | 少来回拉扯，你直接选 |
 | **进度页**：立项即建，页面数据从 `ROADMAP.md` 投射 | 随时能看到“到哪了”，不用追着问 |
+| **开场读最小集**（v1.3）：只读 `AGENTS` §一～§三 ＋ `MEMORY` §2 顶部两条，其余按需查 | 新会话起步更快，不把上下文烧在读文档上 |
 
 ## 安装
 
@@ -99,7 +100,7 @@ npx skills add Columbinagi/project-bootstrap
 | `CONTRACT.md` | 线间字段契约（**有线间接口才建**） | 出现线间接口约定时，**产出之前** |
 | `ACCEPTANCE.md` | 验收记录（逐条对 PRD 的实测值） | 进入验收前 |
 | `engineering/` | 工程区：工具脚本 ＋ 进度页投影脚本 | **立项即建** |
-| `docs/项目进度.html` | 给人看的进度页（投影件，不手改） | **立项即建** |
+| `docs/项目进度.html` | 给人看的进度页（投影件：`stage`／`stages` 不手改，其余字段手改） | **立项即建** |
 
 关卡：**G1 可以开始设计 → G2 可以开始动手 → G3 可以进入主体制作 → G4 可以验收**。
 
@@ -125,7 +126,7 @@ git clone https://github.com/Columbinagi/project-bootstrap.git "%USERPROFILE%\.d
 
 ## 版本与更新
 
-- **当前版本**：`v1.3.0`（写在 `SKILL.md` 的 frontmatter 里）
+- **当前版本**：`v1.3.1`（写在 `SKILL.md` 的 frontmatter 里）
 - **更新**：`git pull`；用社区 CLI 装的话：`npx skills update`
 - **每版改了什么**：[Releases](https://github.com/Columbinagi/project-bootstrap/releases)（摘要）／ `references/versions.md` §十一（逐条：版本 ／ 变更 ／ 性质）
 

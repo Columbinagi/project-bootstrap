@@ -554,8 +554,11 @@ function renderMasthead(){
 function renderDecide(){
   var N = DATA.next || {};
   var list = arr(N.decide) ? N.decide : [];
-  showEl('sec-decide', list.length > 0);
-  if (!list.length) return;
+  showEl('sec-decide', true);
+  if (!list.length){
+    document.getElementById('decide').innerHTML = '<div style="padding:10px 12px;border:1px dashed #c9c7bd;border-radius:8px;color:#6b6a64;font-size:13px">暂无需要你拍板的事 —— 当前事项已收口。</div>';
+    return;
+  }
   var h = '<div class="acts">';
   for (var i = 0; i < list.length; i++){
     var d = list[i];
@@ -727,10 +730,14 @@ function renderPrompts(){
   var used = arr(P.used) ? P.used : [];
   var current = arr(P.current) ? P.current : [];
   var pending = queue.length + main.length;
-  showEl('sec-prompts', pending > 0 || used.length > 0 || current.length > 0);
-  if (!pending && !used.length && !current.length) return;
+  showEl('sec-prompts', true);
 
   var h = '<div class="chain">';
+  if (!pending && !used.length && !current.length){
+    h += '<div style="padding:12px;border:1px dashed #c9c7bd;border-radius:8px;color:#6b6a64;font-size:13px">当前没有进行中的任务链，也没有待分发的提示词。下一步见「需要你做的」；两边都空 ＝ 本轮已收口。</div></div>';
+    document.getElementById('prompts').innerHTML = h;
+    return;
+  }
 
   if (pending || current.length){
     h += '<div class="chain-block">';
