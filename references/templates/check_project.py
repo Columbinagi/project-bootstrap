@@ -49,6 +49,11 @@ SKELETON_DIRS = {
 # 已退休的目录名
 RETIRED_DIRS = {"scripts"}
 
+# ---- skill 本体仓库模式（--skill）：本仓库不是被 skill 管理的项目，是 skill 自己 ----
+SKILL_MODE = False
+SKILL_ROOT_ALLOWED = {"SKILL.md", "LICENSE", ".gitattributes"}
+SKILL_EXTRA_DIRS = {"references", "tools"}
+
 results: list[tuple[bool, str, str]] = []
 
 
@@ -174,6 +179,11 @@ def check_placeholders(root: Path) -> None:
     for f in root.rglob("*.md"):
         if any(x in f.parts for x in ("notes", ".git", "dist", "logs")):
             continue
+        # 验收记录 / 变更记录是按版本累积的历史，里面的示例引用不算残留
+        if f.name in ("ACCEPTANCE.md", "CHANGELOG.md"):
+            continue
+        if SKILL_MODE and "references" in f.parts:
+            continue
         lines = read(f).split("\n")
         fences = _in_fence(lines)
         for (i, line), in_fence in zip(enumerate(lines, 1), fences):
@@ -207,9 +217,10 @@ def check_placeholders(root: Path) -> None:
 
 
 def check_root_clean(root: Path) -> None:
+    allowed = ROOT_ALLOWED | (SKILL_ROOT_ALLOWED if SKILL_MODE else set())
     extra = [
         f.name for f in root.iterdir()
-        if f.is_file() and not f.name.startswith(".") and f.name not in ROOT_ALLOWED
+        if f.is_file() and not f.name.startswith(".") and f.name not in allowed
     ]
     if extra:
         bad("根目录", "有产物未归位：" + "、".join(extra[:6]))
@@ -226,7 +237,7 @@ def check_dir_names(root: Path) -> None:
             bad_name.append(d.name)
         elif d.name in RETIRED_DIRS:
             bad_name.append(f"{d.name}（已退休，辅助脚本进 engineering/）")
-        elif d.name not in SKELETON_DIRS:
+        elif d.name not in (SKELETON_DIRS | (SKILL_EXTRA_DIRS if SKILL_MODE else set())):
             unknown.append(d.name)
     if bad_name:
         bad("目录命名", "不合规：" + "、".join(bad_name[:6]))
@@ -238,6 +249,9 @@ def check_dir_names(root: Path) -> None:
 
 def check_refs(root: Path) -> None:
     """文档里点名的内部路径（带扩展名）必须真实存在。"""
+    if SKILL_MODE:
+        ok("引用可达", "skill 仓库模式：跳过（正文按 references/ 为基准，由 tools/lint.py 把关）")
+        return
     pat = re.compile(
         r"`((?:docs|notes|engineering|content|assets|models|templates|skills|src|tests|dist|release|archive|logs)/[^\s`]+\.(?:md|py|html|css|js|json|yaml|yml|xlsx|csv))`"
     )
@@ -301,7 +315,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("root", nargs="?", default=".", help="项目根目录")
     ap.add_argument("--quiet", action="store_true", help="只打印失败项")
+    ap.add_argument("--skill", action="store_true", help="skill 本体仓库模式（豁免 SKILL.md / references / tools 等特有结构）")
     args = ap.parse_args()
+    global SKILL_MODE
+    SKILL_MODE = args.skill
     root = Path(args.root).resolve()
 
     check_core_docs(root)
