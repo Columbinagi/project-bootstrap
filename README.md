@@ -23,7 +23,7 @@
 **目录一律按需生长，没有例外**：有内容源才建 `content/`，有工具脚本才建 `engineering/`，
 有文档交付物才建 `docs/` —— **空目录不是"准备好"，是负债**。
 
-## 当前版本 v1.7.1
+## 当前版本 v1.7.2
 
 这一版是一次**结构性重写**，起因是三个实测出来的问题：
 
@@ -135,7 +135,7 @@ git clone https://github.com/Columbinagi/project-bootstrap.git "%USERPROFILE%\.d
 
 ## 版本与更新
 
-- **当前版本**：`v1.7.1`（写在 `SKILL.md` 的 frontmatter 里）
+- **当前版本**：`v1.7.2`（写在 `SKILL.md` 的 frontmatter 里）
 - **更新**：`git pull`；用社区 CLI 装的话：`npx skills update`
 - **每版改了什么**：[Releases](https://github.com/Columbinagi/project-bootstrap/releases)（摘要）／
   `references/changelog.md`（逐条：日期 ／ 版本 ／ 变更 ／ 性质）
