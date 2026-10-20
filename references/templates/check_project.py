@@ -177,12 +177,14 @@ def check_placeholders(root: Path) -> None:
     """落盘后不应残留 <…> 占位符（跳过代码块 / 比较符号 / 日期 / 邮箱 / HTML）。"""
     hits = []
     for f in root.rglob("*.md"):
-        if any(x in f.parts for x in ("notes", ".git", "dist", "logs")):
+        parts = f.relative_to(root).parts
+        if any(x in parts for x in ("notes", ".git", "dist", "logs")):
             continue
         # 验收记录 / 变更记录是按版本累积的历史，里面的示例引用不算残留
         if f.name in ("ACCEPTANCE.md", "CHANGELOG.md"):
             continue
-        if SKILL_MODE and "references" in f.parts:
+        # 只豁免模板目录（模板天生有占位符）；references 下的正文照样查
+        if SKILL_MODE and parts[:2] == ("references", "templates"):
             continue
         lines = read(f).split("\n")
         fences = _in_fence(lines)
@@ -248,23 +250,31 @@ def check_dir_names(root: Path) -> None:
 
 
 def check_refs(root: Path) -> None:
-    """文档里点名的内部路径（带扩展名）必须真实存在。"""
-    if SKILL_MODE:
-        ok("引用可达", "skill 仓库模式：跳过（正文按 references/ 为基准，由 tools/lint.py 把关）")
-        return
+    """文档里点名的内部路径（带扩展名）必须真实存在。
+
+    skill 仓库模式不跳过 —— 只是多认一个基准：`references/` 下的文件，
+    相对路径既可能从项目根算，也可能从 `references/` 算。
+    """
+    bases = [root, root / "references"] if SKILL_MODE else [root]
     pat = re.compile(
         r"`((?:docs|notes|engineering|content|assets|models|templates|skills|src|tests|dist|release|archive|logs)/[^\s`]+\.(?:md|py|html|css|js|json|yaml|yml|xlsx|csv))`"
     )
     missing = []
     for f in root.rglob("*.md"):
-        if any(x in f.parts for x in (".git", "dist", "logs")):
+        parts = f.relative_to(root).parts
+        if any(x in parts for x in (".git", "dist", "logs", "notes")):
+            continue
+        if f.name in ("ACCEPTANCE.md", "CHANGELOG.md"):
             continue
         for m in pat.finditer(read(f)):
             rel = m.group(1)
-            # 命名模式（docs/{名称}_{YYYYMMDD}.html）不是真实引用
-            if re.search(r"[{}<>]|YYYY", rel):
+            # 通配符 / 命名模式（docs/{名称}_{YYYYMMDD}.html、docs/*.html）不是真实引用
+            if re.search(r"[*{}<>]|YYYY", rel):
                 continue
-            if not (root / rel).exists():
+            # skill 仓库模式：engineering/ 开头的引用是在描述"项目侧该有什么"，不是本仓库的文件
+            if SKILL_MODE and rel.startswith("engineering/"):
+                continue
+            if not any((b / rel).exists() for b in bases):
                 missing.append(f"{f.relative_to(root)} → {rel}")
     if missing:
         bad("引用可达", f"{len(missing)} 处指向不存在的文件：" + "；".join(sorted(set(missing))[:6]))
@@ -318,8 +328,11 @@ def main() -> int:
     ap.add_argument("--skill", action="store_true", help="skill 本体仓库模式（豁免 SKILL.md / references / tools 等特有结构）")
     args = ap.parse_args()
     global SKILL_MODE
-    SKILL_MODE = args.skill
     root = Path(args.root).resolve()
+    SKILL_MODE = args.skill
+    if SKILL_MODE and not (root / "SKILL.md").exists():
+        print("[FAIL] --skill 模式要求根目录有 SKILL.md —— 这不是 skill 本体仓库，去掉该参数")
+        return 1
 
     check_core_docs(root)
     check_gitignore(root)
