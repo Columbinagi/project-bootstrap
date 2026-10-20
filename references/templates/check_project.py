@@ -131,8 +131,11 @@ def check_placeholders(root: Path) -> None:
         for i, line in enumerate(read(f).split("\n"), 1):
             if "<" not in line:
                 continue
-            # 排除 HTML 标签与注释
-            if re.search(r"</?[a-zA-Z][a-zA-Z0-9]*[^>]*>", line):
+            # 排除"占位符规则"这句说明本身（它就是要讲尖括号的）
+            if "占位符" in line:
+                continue
+            # 排除真正的 HTML 标签：标签名后必须跟空格、/ 或 >（收紧，防 <a@b> 被误放）
+            if re.search(r"</?[a-zA-Z][a-zA-Z0-9]*(\s[^>]*)?/?>", line):
                 continue
             if "<!--" in line:
                 continue
@@ -141,6 +144,9 @@ def check_placeholders(root: Path) -> None:
                 continue
             # `<YYYYMMDD>` / `<20261020>` 是日期写法，不是占位符
             if re.fullmatch(r"<(?:YYYYMMDD|\d{8})>", m.group(0)):
+                continue
+            # `<name@host>` 是 git 身份的标准写法（Name <email>），不是占位符
+            if re.fullmatch(r"<[^<>@\s]+@[^<>@\s]+>", m.group(0)):
                 continue
             hits.append(f"{f.relative_to(root)}:{i}")
     if hits:
