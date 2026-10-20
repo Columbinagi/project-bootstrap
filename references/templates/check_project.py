@@ -310,6 +310,23 @@ def check_tables(root: Path) -> None:
         ok("表格列数", "全部对齐")
 
 
+def check_bom(root: Path) -> None:
+    """文本文件不得带 BOM —— BOM 会让解析器读不到文件头，是静默失效。"""
+    bad_files = []
+    for f in root.rglob("*"):
+        if not f.is_file() or f.suffix not in (".md", ".py", ".html", ".css", ".js", ".json", ".yaml", ".yml"):
+            continue
+        parts = f.relative_to(root).parts
+        if any(x in parts for x in (".git", "dist", "logs")):
+            continue
+        if f.read_bytes()[:3] == b"\xef\xbb\xbf":
+            bad_files.append(str(f.relative_to(root)))
+    if bad_files:
+        bad("BOM", f"{len(bad_files)} 个文件带 BOM：" + "、".join(bad_files[:6]))
+    else:
+        ok("BOM", "无 BOM")
+
+
 def check_stage_route(root: Path) -> None:
     p = root / "MEMORY.md"
     if not p.exists():
@@ -343,6 +360,7 @@ def main() -> int:
     check_dir_names(root)
     check_refs(root)
     check_tables(root)
+    check_bom(root)
     check_stage_route(root)
 
     failed = 0

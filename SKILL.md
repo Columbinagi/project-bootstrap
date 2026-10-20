@@ -2,7 +2,7 @@
 name: project-bootstrap
 description: "项目启动与规范化。场景一 · 新项目（从零或照样板做）：建五份骨架文档（AGENTS/MEMORY/USER/SOUL/PRD）＋ git，写完 PRD 停下交审，审过才写 ROADMAP 开工；有样板先抽骨架（问清版本号 / 派生范围 / 位置；搬母版与目录骨架，不搬内容数据与进度文档；改接线列清单过目；真跑校验）。场景二 · 老项目回头对齐：只读取证 → 出完整差异清单 → 使用者审一次 → 一次执行到位（修链接实测 ＋ 回填记录）；规矩过时、只建一部分、或完全没规矩都走这里，不要重走主流程。用于：要新开项目、搭项目文件夹、先规划一下、照 X 项目的样子做一个、把已有项目按规范对齐、给在跑的项目补规矩。不用于：文件整理、目录迁移、改名等琐事，只聊项目结构 / 文档写法，或还没决定要立项目。"
 metadata:
-  version: "1.7.4"
+  version: "1.7.5"
 compatibility: "纯文本流程，不依赖其他 Skill。需要文件读写与命令执行能力（建目录、git、写文件）；需要向用户提问的能力（用于采集 USER.md）。git 可选：无 git 时跳过版本库步骤并在收尾说明。"
 ---
 
@@ -34,7 +34,7 @@ compatibility: "纯文本流程，不依赖其他 Skill。需要文件读写与�
 | 4 | **落地四份骨架文档**（`AGENTS` ／ `MEMORY` ／ `USER` ／ `SOUL`）；**`PRD.md` 在第 5 步写**，此处不建空文件 | `references/templates/{AGENTS,MEMORY,USER,SOUL}.md` |
 | 5 | **写 `PRD.md`，然后停** —— 交使用者审核，并问「哪些前提需要你现在验证」。写完把 `AGENTS.md` 顺序表里 PRD 行改 ☑ | `references/templates/PRD.md` |
 | 6 | **审过才写 `ROADMAP.md`**：关卡 G1–G4 ＋ 阶段表 ＋ 当前卡点（`references/templates/ROADMAP.md`）。**同一轮做三件回填**：① `AGENTS.md` 顺序表里 `ROADMAP.md` 行改 ☑；② `AGENTS.md` §一「当前阶段」指针改指 `ROADMAP.md` §二（阶段表；「当前卡点」才是 §三）；③ `MEMORY.md` 那条阶段路线标【已移交 · 见 `ROADMAP.md` §二】（**不删**，留作回溯） | — |
-| 7 | **收尾交接**：建了什么、卡在哪、下一步他要做什么；`git add` **点名**文件后提交（**不用 `git add -A`**）。**提交前先查 `git config user.email`**：为空就**问使用者**是否设**仓库局部**身份（`git config --local`）—— **不许改 `--global`**（属「改系统设置，一律先问」） | — |
+| 7 | **收尾交接**：建了什么、卡在哪、下一步他要做什么；**先跑自检（若已复制脚本）rc 0 再交**；`git add` **点名**文件后提交（**不用 `git add -A`**）。**提交前先查 `git config user.email`**：为空就**问使用者**是否设**仓库局部**身份（`git config --local`）—— **不许改 `--global`**（属「改系统设置，一律先问」） | — |
 
 ### 三个停点（**不许跳过**）
 
@@ -67,9 +67,9 @@ compatibility: "纯文本流程，不依赖其他 Skill。需要文件读写与�
 | `SOUL.md` | 协作准则（含协作方式节）＋ **按区并入**准则附录（内容区 → `references/guidelines/SOUL-content.md`；写代码 → `references/guidelines/SOUL-code.md` 或 `SOUL-code-lite.md`）。**不写就不附** |
 | `PRD.md` | 见第 5 步 |
 
-> **可选自检**：需要时把 `references/templates/check_project.py` 复制到项目的 `engineering/`，
-> 跑 `python engineering/check_project.py .` —— 一次查出「该建的没建 / 状态列失真 / 占位符残留 / 根目录有产物 / 目录名不合规 / 表格列数不齐」。
-> **它不建目录**（复制脚本时才建 `engineering/`），不跑也不影响交付。
+> **自检脚本**：把 `references/templates/check_project.py` 复制到项目的 `engineering/`，跑
+> `python engineering/check_project.py .` —— 11 项一次查完（骨架文档 / `.gitignore` / 状态表正向与反向 / 占位符 / 根目录 / 目录名 / 引用可达 / 表格列数 / BOM / 阶段路线）。
+> **建议在第 4 步就复制过去**，之后每次收尾都跑（第 7 步）。**没有 Python 时**退回人工逐项，并在汇报里说明"机器校验没跑"。
 > **复制后要回填**：`AGENTS.md` §三 的 `engineering/` 行改 ☑、`MEMORY.md` §5 加一行 —— 否则状态表当场失真。
 
 > **先读 Agent 侧已有的全局约定**（全局自定义指令 / 全局配置）—— **已经写过的不要在项目里再写一遍**。
